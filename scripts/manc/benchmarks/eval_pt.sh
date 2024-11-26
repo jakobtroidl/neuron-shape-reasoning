@@ -1,0 +1,15 @@
+bsub -J "AE Eval (PT)" -n 8 -gpu "num=1" -q gpu_a100 -o logs/bold_color_paper_manc_pt_eval.log python -m benchmarks.transformer.eval \
+    --model pt_b4_n16_dim64 \
+    --pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_manc_pt_train/ckpt/checkpoint-696.pth \
+    --data_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/swc \
+    --types_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/affinity/test.csv  \
+    --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/bold_color_paper_manc_pt_eval \
+    --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/manc_v1.0/types/family_to_id.json \
+    --num_workers 6 \
+    --point_cloud_size 1024 \
+    --batch_size 1 \
+    --data_global_scale_factor 659.88367 \
+    --thresholds 0.9 \
+    --translate_augmentation 70 \
+    --store_tensors \
+    --qual_results \

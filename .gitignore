@@ -1,0 +1,12 @@
+wandb/*
+data/
+output/*
+outputs/*
+logs/*
+*.pyc
+util/__pycache__/*
+util/__pycache__/datasets.cpython-39.pyc
+*.png
+output.log
+*.log
+misc/*

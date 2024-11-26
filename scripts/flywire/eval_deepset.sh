@@ -1,0 +1,15 @@
+bsub -J "AE Eval (DeepSet)" -n 12 -gpu "num=1" -q gpu_h100 -o logs/paper_flywire_deepset_test.log python eval_contrastive.py \
+    --model ae_d1024_m512 \
+    --encoder_pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/affinity_benchmark_w_dust_frag_v2/ckpt/checkpoint-946.pth \
+    --deep_set_pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_flywire_deepset_train_normed/ckpt/checkpoint-90.pth \
+    --data_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/train \
+    --types_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/affinity/ol_family_balanced/affinity_test.csv \
+    --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_flywire_deepset_test \
+    --train_emb_path /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_flywire_deepset_train_normed/emb_ep_90/ \
+    --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/types/visual_neurons_family_to_id.json \
+    --num_workers 1 \
+    --point_cloud_size 1024 \
+    --batch_size 650 \
+    --data_global_scale_factor 659.88367 \
+    --depth 24 \
+    --norm_emb

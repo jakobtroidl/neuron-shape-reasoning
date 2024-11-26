@@ -1,0 +1,17 @@
+bsub -J "AE Train (GNN)" -n 12 -gpu "num=1" -q gpu_a100 -o logs/paper_manc_gnn_train.log python -m benchmarks.gnn.train \
+    --accum_iter 1 \
+    --model pgnn_l3_dim128 \
+    --data_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/swc \
+    --types_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/affinity/train.csv \
+    --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_manc_gnn_train \
+    --log_dir /nrs/turaga/jakob/implicit-neurons/logs/ae/paper_manc_gnn_train \
+    --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/manc_v1.0/types/family_to_id.json \
+    --translate_augmentation 70 \
+    --num_workers 8 \
+    --point_cloud_size 1024 \
+    --batch_size 50 \
+    --epochs 1000 \
+    --warmup_epochs 5 \
+    --data_global_scale_factor 659.88367 \
+    --lr 1e-4 \
+    --distributed \

@@ -1,0 +1,15 @@
+bsub -J "AE Train (PT)" -n 24 -gpu "num=3" -q gpu_h100 -o logs/paper_flywire_pt_train.log python -m benchmarks.transformer.train \
+    --accum_iter 2 \
+    --model pt_b4_n16_dim64 \
+    --data_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/train \
+    --types_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/affinity/ol_family_balanced/affinity_train.csv \
+    --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_flywire_pt_train \
+    --log_dir /nrs/turaga/jakob/implicit-neurons/logs/ae/paper_flywire_pt_train \
+    --num_workers 18 \
+    --point_cloud_size 1024 \
+    --batch_size 140 \
+    --epochs 1000 \
+    --warmup_epochs 5 \
+    --data_global_scale_factor 659.88367 \
+    --lr 1e-4 \
+    --distributed \

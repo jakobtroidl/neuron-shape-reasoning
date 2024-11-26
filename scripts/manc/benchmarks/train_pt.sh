@@ -1,0 +1,17 @@
+bsub -J "AE Train (PT)" -n 24 -gpu "num=3" -q gpu_h100 -o logs/paper_manc_pt_train.log python -m benchmarks.transformer.train \
+    --accum_iter 2 \
+    --model pt_b4_n16_dim64 \
+    --data_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/swc \
+    --types_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/affinity/train.csv \
+    --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_manc_pt_train \
+    --log_dir /nrs/turaga/jakob/implicit-neurons/logs/ae/paper_manc_pt_train \
+    --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/manc_v1.0/types/family_to_id.json \
+    --num_workers 18 \
+    --point_cloud_size 1024 \
+    --translate_augmentation 70 \
+    --batch_size 140 \
+    --epochs 1000 \
+    --warmup_epochs 5 \
+    --data_global_scale_factor 659.88367 \
+    --lr 1e-4 \
+    --distributed \
