@@ -9,7 +9,7 @@
             "type": "debugpy",
             "stopOnException": true,
             "request": "launch",
-            "module": "main_ae_topology",
+            "module": "train_affinity",
             "args": [
                 "--accum_iter=2",
                 "--model=ae_d512_m64",
@@ -33,7 +33,7 @@
             "name": "Eval Model (Affinity)",
             "type": "debugpy",
             "request": "launch",
-            "module": "eval_topology",
+            "module": "eval_affinity",
             "args": [
                 "--model=ae_d128_m64",
                 "--pth=/nrs/turaga/jakob/implicit-neurons/ckpt/ae/affinity_benchmark_variable_pc_debug/ckpt/checkpoint-500.pth",
@@ -56,7 +56,7 @@
             "name": "Train DeepSet (Contrastive)",
             "type": "debugpy",
             "request": "launch",
-            "module": "main_contrastive",
+            "module": "train_contrastive",
             "args": [
                 "--model=ae_d1024_m512",
                 "--pth=/nrs/turaga/jakob/implicit-neurons/ckpt/ae/affinity_benchmark_family_v1/ckpt/checkpoint-550.pth",

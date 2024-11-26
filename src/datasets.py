@@ -22,7 +22,6 @@ def build_affinity_dataset(
         samples_per_neuron=512, 
         scale=1.0, 
         train=True, 
-        gnn_radius_transform=None, 
         max_neurons_merged=4, 
         shuffle_output=True, 
         fam_to_id=None, 
@@ -37,7 +36,6 @@ def build_affinity_dataset(
         samples_per_neuron=samples_per_neuron,
         scale=scale,
         train=train,
-        gnn_radius_transform=gnn_radius_transform,
         max_neurons_merged=max_neurons_merged, 
         shuffle_output=shuffle_output, 
         fam_id_mapping_path=fam_to_id,
@@ -99,7 +97,6 @@ class MultiNeuronDataset(Dataset):
         self.n_neurons = torch.randint(1, max_neurons_merged + 1, (1,))
         self.root_ids = pd.read_csv(root_id_path)
         self.neurons = glob.glob(f"{self.neuron_path}/*.swc")
-        # self.gnn_radius_transform = gnn_radius_transform
         self.fam_to_id_path = fam_id_mapping_path
         self.fam_to_id = json.load(open(self.fam_to_id_path, "r"))
         self.shuffle_output = shuffle_output
@@ -143,10 +140,6 @@ class MultiNeuronDataset(Dataset):
         ])
         pc = aug(points)
         return pc.pos
-    
-    # def shuffle_n_neurons(self):
-    #     self.n_neurons = torch.randint(1, self.max_neurons_merged + 1, (1,))
-
 
     def __len__(self):
         """

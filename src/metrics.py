@@ -44,7 +44,7 @@ def mAP(y_true, y_pred):
     """
     Compute mean average precision.
     """
-    map_score = average_precision_score(y_true, y_pred)  # or 'micro' depending on your preference
+    map_score = average_precision_score(y_true, y_pred)
     return map_score
 
 def top_k_error(y_true, y_pred, k=5):
