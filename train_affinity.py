@@ -17,30 +17,49 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 
+
 def get_args_parser():
-    parser = argparse.ArgumentParser('Autoencoder', add_help=False)
-    parser.add_argument('--batch_size', default=64, type=int,
-                        help='Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus')
-    parser.add_argument('--epochs', default=800, type=int)
-    parser.add_argument('--accum_iter', default=1, type=int,
-                        help='Accumulate gradient iterations (for increasing the effective batch size under memory constraints)')
+    parser = argparse.ArgumentParser("Autoencoder", add_help=False)
+    parser.add_argument(
+        "--batch_size",
+        default=64,
+        type=int,
+        help="Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus",
+    )
+    parser.add_argument("--epochs", default=800, type=int)
+    parser.add_argument(
+        "--accum_iter",
+        default=1,
+        type=int,
+        help="Accumulate gradient iterations (for increasing the effective batch size under memory constraints)",
+    )
 
     # Model parameters
-    parser.add_argument('--model', default='ae_blob64', type=str, metavar='MODEL',
-                        help='Name of model to train')
+    parser.add_argument(
+        "--model",
+        default="ae_blob64",
+        type=str,
+        metavar="MODEL",
+        help="Name of model to train",
+    )
 
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
     parser.add_argument("--repeat_dataset", type=int, default=1)
-    parser.add_argument('--types_path', type=str, required=True)
+    parser.add_argument("--types_path", type=str, required=True)
 
-    parser.add_argument('--point_cloud_size', default=2048, type=int,
-                        help='input size')
+    parser.add_argument("--point_cloud_size", default=2048, type=int, help="input size")
     # Optimizer parameters
-    parser.add_argument('--clip_grad', type=float, default=None, metavar='NORM',
-                        help='Clip gradient norm (default: None, no clipping)')
-    parser.add_argument('--weight_decay', type=float, default=0.05,
-                        help='weight decay (default: 0.05)')
+    parser.add_argument(
+        "--clip_grad",
+        type=float,
+        default=None,
+        metavar="NORM",
+        help="Clip gradient norm (default: None, no clipping)",
+    )
+    parser.add_argument(
+        "--weight_decay", type=float, default=0.05, help="weight decay (default: 0.05)"
+    )
 
     parser.add_argument(
         "--lr",
@@ -56,59 +75,83 @@ def get_args_parser():
         metavar="LR",
         help="base learning rate: absolute_lr = base_lr * total_batch_size / 256",
     )
-    parser.add_argument('--layer_decay', type=float, default=0.75,
-                        help='layer-wise lr decay from ELECTRA/BEiT')
+    parser.add_argument(
+        "--layer_decay",
+        type=float,
+        default=0.75,
+        help="layer-wise lr decay from ELECTRA/BEiT",
+    )
 
-    parser.add_argument('--min_lr', type=float, default=1e-6, metavar='LR',
-                        help='lower lr bound for cyclic schedulers that hit 0')
+    parser.add_argument(
+        "--min_lr",
+        type=float,
+        default=1e-6,
+        metavar="LR",
+        help="lower lr bound for cyclic schedulers that hit 0",
+    )
 
-    parser.add_argument('--warmup_epochs', type=int, default=40, metavar='N',
-                        help='epochs to warmup LR')
+    parser.add_argument(
+        "--warmup_epochs", type=int, default=40, metavar="N", help="epochs to warmup LR"
+    )
 
     parser.add_argument(
         "--distributed", action="store_true", help="Run distributed training"
     )
 
-    parser.add_argument('--output_dir', default='./output/',
-                        help='path where to save, empty for no saving')
-    parser.add_argument('--log_dir', default='./output/',
-                        help='path where to tensorboard log')
-    parser.add_argument('--device', default='cuda',
-                        help='device to use for training / testing')
-    parser.add_argument('--seed', default=0, type=int)
-    parser.add_argument('--resume', default='',
-                        help='resume from checkpoint')
+    parser.add_argument(
+        "--output_dir",
+        default="./output/",
+        help="path where to save, empty for no saving",
+    )
+    parser.add_argument(
+        "--log_dir", default="./output/", help="path where to tensorboard log"
+    )
+    parser.add_argument(
+        "--device", default="cuda", help="device to use for training / testing"
+    )
+    parser.add_argument("--seed", default=0, type=int)
+    parser.add_argument("--resume", default="", help="resume from checkpoint")
 
-    parser.add_argument('--start_epoch', default=0, type=int, metavar='N',
-                        help='start epoch')
-    parser.add_argument('--eval', action='store_true',
-                        help='Perform evaluation only')
-    parser.add_argument('--dist_eval', action='store_true', default=False,
-                        help='Enabling distributed evaluation (recommended during training for faster monitor')
-    parser.add_argument('--num_workers', default=4, type=int)
-    parser.add_argument('--pin_mem', action='store_true',
-                        help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
-    parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
+    parser.add_argument(
+        "--start_epoch", default=0, type=int, metavar="N", help="start epoch"
+    )
+    parser.add_argument("--eval", action="store_true", help="Perform evaluation only")
+    parser.add_argument(
+        "--dist_eval",
+        action="store_true",
+        default=False,
+        help="Enabling distributed evaluation (recommended during training for faster monitor",
+    )
+    parser.add_argument("--num_workers", default=4, type=int)
+    parser.add_argument(
+        "--pin_mem",
+        action="store_true",
+        help="Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.",
+    )
+    parser.add_argument("--no_pin_mem", action="store_false", dest="pin_mem")
     parser.set_defaults(pin_mem=False)
 
     # distributed training parameters
-    parser.add_argument('--world_size', default=1, type=int,
-                        help='number of distributed processes')
-    parser.add_argument('--local_rank', default=-1, type=int)
+    parser.add_argument(
+        "--world_size", default=1, type=int, help="number of distributed processes"
+    )
+    parser.add_argument("--local_rank", default=-1, type=int)
     parser.add_argument("--dist_on_itp", default=False, type=bool)
-    parser.add_argument('--dist_url', default='env://',
-                        help='url used to set up distributed training')
-    
+    parser.add_argument(
+        "--dist_url", default="env://", help="url used to set up distributed training"
+    )
+
     parser.add_argument("--depth", default=24, type=int)
     parser.add_argument("--fam_to_id_mapping", type=str, required=True)
     parser.add_argument("--translate_augmentation", type=float, default=20.0)
 
     return parser
 
+
 def main(args):
-    print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
-    print("{}".format(args).replace(', ', ',\n'))
-    
+    print("job dir: {}".format(os.path.dirname(os.path.realpath(__file__))))
+    print("{}".format(args).replace(", ", ",\n"))
+
     # set GPU device
     device = torch.device(args.device)
 
@@ -131,9 +174,9 @@ def main(args):
         neuron_path=args.data_path,
         root_id_path=args.types_path,
         samples_per_neuron=args.point_cloud_size,
-        scale = args.data_global_scale_factor,
+        scale=args.data_global_scale_factor,
         fam_to_id=args.fam_to_id_mapping,
-        translate=args.translate_augmentation
+        translate=args.translate_augmentation,
     )
 
     data_loader_train = torch.utils.data.DataLoader(
@@ -175,7 +218,12 @@ def main(args):
     print("criterion = %s" % str(criterion))
     print(f"Start training for {args.epochs} epochs")
 
-    misc.load_model(args=args, model_without_ddp=model_without_ddp, optimizer=optimizer, loss_scaler=loss_scaler)
+    misc.load_model(
+        args=args,
+        model_without_ddp=model_without_ddp,
+        optimizer=optimizer,
+        loss_scaler=loss_scaler,
+    )
 
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -195,14 +243,20 @@ def main(args):
         )
         if args.output_dir and (epoch % 2 == 0 or epoch + 1 == args.epochs):
             misc.save_model(
-                args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
-                loss_scaler=loss_scaler, epoch=epoch)
+                args=args,
+                model=model,
+                model_without_ddp=model_without_ddp,
+                optimizer=optimizer,
+                loss_scaler=loss_scaler,
+                epoch=epoch,
+            )
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
-    print('Training time {}'.format(total_time_str))
+    print("Training time {}".format(total_time_str))
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     args = get_args_parser()
     args = args.parse_args()
     if args.output_dir:

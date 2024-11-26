@@ -19,26 +19,42 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model', default='kl_d512_m512_l8', type=str, metavar='MODEL', help='Name of model to train')
-parser.add_argument('--encoder_pth', required=True, type=str)
-parser.add_argument('--deep_set_pth', required=True, type=str)
-parser.add_argument('--device', default='cuda', help='device to use for training / testing')
-parser.add_argument('--seed', default=0, type=int)
-parser.add_argument('--data_path', type=str, required=True, help='dataset path')
-parser.add_argument('--data_global_scale_factor', type=float, default=1.0)
-parser.add_argument('--types_path', type=str, required=True)
-parser.add_argument('--output_dir', type=str, required=True, help='logs dir path')
-parser.add_argument('--batch_size', default=160, type=int, help='batch_size')
-parser.add_argument('--num_workers', default=4, type=int, help='num_workers')
-parser.add_argument('--point_cloud_size', default=2048, type=int, help='point_cloud_size')
-parser.add_argument('--depth', default=24, type=int, help='model depth')
-parser.add_argument('--norm_emb', action='store_true', help='normalize embeddings')
-parser.add_argument('--k', default=15, type=int, help='k for knn type classification')
-parser.add_argument('--train_emb_path', required=True, type=str, help='path to training embeddings used for evaluation')
+parser.add_argument(
+    "--model",
+    default="kl_d512_m512_l8",
+    type=str,
+    metavar="MODEL",
+    help="Name of model to train",
+)
+parser.add_argument("--encoder_pth", required=True, type=str)
+parser.add_argument("--deep_set_pth", required=True, type=str)
+parser.add_argument(
+    "--device", default="cuda", help="device to use for training / testing"
+)
+parser.add_argument("--seed", default=0, type=int)
+parser.add_argument("--data_path", type=str, required=True, help="dataset path")
+parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
+parser.add_argument("--types_path", type=str, required=True)
+parser.add_argument("--output_dir", type=str, required=True, help="logs dir path")
+parser.add_argument("--batch_size", default=160, type=int, help="batch_size")
+parser.add_argument("--num_workers", default=4, type=int, help="num_workers")
+parser.add_argument(
+    "--point_cloud_size", default=2048, type=int, help="point_cloud_size"
+)
+parser.add_argument("--depth", default=24, type=int, help="model depth")
+parser.add_argument("--norm_emb", action="store_true", help="normalize embeddings")
+parser.add_argument("--k", default=15, type=int, help="k for knn type classification")
+parser.add_argument(
+    "--train_emb_path",
+    required=True,
+    type=str,
+    help="path to training embeddings used for evaluation",
+)
 parser.add_argument("--fam_to_id_mapping", type=str, required=True)
 parser.add_argument("--translate_augmentation", type=float, default=20.0)
 
 args = parser.parse_args()
+
 
 def load_train_emb(path):
     emb_files = glob.glob(f"{path}/*emb.npy")
@@ -63,7 +79,6 @@ def load_train_emb(path):
     return embs, types
 
 
-
 def main():
     print(args)
     seed = args.seed
@@ -71,17 +86,19 @@ def main():
     np.random.seed(seed)
     cudnn.benchmark = True
 
-    encoder_model = models.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
+    encoder_model = models.__dict__[args.model](
+        N=args.point_cloud_size, depth=args.depth
+    )
     device = torch.device(args.device)
     encoder_model.eval()
-    module = torch.load(args.encoder_pth, map_location='cpu')['model']
+    module = torch.load(args.encoder_pth, map_location="cpu")["model"]
     encoder_model.load_state_dict(module, strict=True)
     encoder_model.to(device)
     encoder_model.eval()
     print(encoder_model)
 
     emb_projector = EmbProjector(emb_dim=1024, hidden_dim=256, output_dim=32)
-    module = torch.load(args.deep_set_pth, map_location='cpu')['model']
+    module = torch.load(args.deep_set_pth, map_location="cpu")["model"]
     emb_projector.load_state_dict(module, strict=True)
     emb_projector.to(device)
     emb_projector.eval()
@@ -93,7 +110,7 @@ def main():
         samples_per_neuron=args.point_cloud_size,
         scale=args.data_global_scale_factor,
         max_neurons_merged=1,
-        train=True, 
+        train=True,
         fam_to_id=args.fam_to_id_mapping,
         translate=args.translate_augmentation,
         n_dust_neurons=0,
@@ -111,7 +128,9 @@ def main():
     test_emb = []
     test_types = []
 
-    for i, (pc, labels, mask, root_ids, types, pairs, pairs_labels)  in enumerate(tqdm(data_loader_train)):
+    for i, (pc, labels, mask, root_ids, types, pairs, pairs_labels) in enumerate(
+        tqdm(data_loader_train)
+    ):
         pc = pc.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
         mask = mask.to(device, non_blocking=True)
@@ -120,17 +139,16 @@ def main():
 
         with torch.no_grad():  # Do not calculate gradients for model_B
             out = encoder_model(pc, mask, pairs)
-            emb = out['latents']
+            emb = out["latents"]
             contr_emb = emb_projector(emb, normalize=norm)
-
 
         test_emb.append(contr_emb.cpu().numpy())
         test_types.append(types.cpu().numpy())
 
-
-        misc.save_points(args.output_dir, contr_emb, root_ids, suffix="emb", folder="emb")
+        misc.save_points(
+            args.output_dir, contr_emb, root_ids, suffix="emb", folder="emb"
+        )
         misc.save_points(args.output_dir, types, root_ids, suffix="type", folder="emb")
-    
 
     # eval the test embeddings using a KNN classifier
     test_emb = np.concatenate(test_emb, axis=0)
@@ -143,7 +161,7 @@ def main():
     y_pred = classifier.predict_proba(test_emb)
 
     test_types = test_types.squeeze()
-    
+
     mAP = metrics.mAP(test_types, y_pred)
     top_1_error = metrics.top_k_error(test_types, y_pred, k=1)
     top_5_error = metrics.top_k_error(test_types, y_pred, k=5)
@@ -169,6 +187,7 @@ def main():
         os.makedirs(args.output_dir, exist_ok=True)
     with open(f"{args.output_dir}/results.txt", "w") as f:
         f.write(summary)
-  
-if __name__ == '__main__':
+
+
+if __name__ == "__main__":
     main()

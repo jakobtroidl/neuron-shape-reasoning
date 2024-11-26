@@ -1,3 +1,6 @@
+
+**Disclaimer: Code Still under construction**
+
 ## Global Neuron Shape Reasoning with Point Affinity Transformers
 This repository contains the official implementation of the paper "Global Neuron Shape Reasoning with Point Affinity Transformers" by Jakob Troidl, Johannes Knittel, Wanhua Li, Fangneng Zhan, Hanspeter Pfister*, and Srinivas Turaga*. 
 
