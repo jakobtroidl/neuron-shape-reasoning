@@ -18,17 +18,9 @@ import time
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "--model",
-    default="ae_d1024_m512",
-    type=str,
-    metavar="MODEL",
-    help="Name of model to train",
-)
+parser.add_argument("--model", default="ae_d1024_m512", type=str)
 parser.add_argument("--pth", required=True, type=str)
-parser.add_argument(
-    "--device", default="cuda", help="device to use for training / testing"
-)
+parser.add_argument("--device", default="cuda")
 parser.add_argument("--seed", default=0, type=int)
 parser.add_argument("--data_path", type=str, required=True, help="dataset path")
 parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
@@ -36,32 +28,14 @@ parser.add_argument("--types_path", type=str, required=True)
 parser.add_argument("--output_dir", type=str, required=True, help="logs dir path")
 parser.add_argument("--batch_size", default=160, type=int, help="batch_size")
 parser.add_argument("--num_workers", default=4, type=int, help="num_workers")
-parser.add_argument(
-    "--point_cloud_size", default=2048, type=int, help="point_cloud_size"
-)
+parser.add_argument("--point_cloud_size", default=2048, type=int)
 parser.add_argument("--depth", default=24, type=int, help="model depth")
-parser.add_argument(
-    "--thresholds",
-    type=str,
-    help='Array passed as a comma-separated string, e.g. "1,2,3,4"',
-    default="0.5,0.9",
-)
-parser.add_argument(
-    "--store_tensors", action="store_true", help="store tensors for visualization"
-)
-parser.add_argument(
-    "--qual_results",
-    action="store_true",
-    help="uses reproducable dataset for rendering of qualitative results",
-)
+parser.add_argument("--thresholds", type=str, default="0.5,0.9")
+parser.add_argument("--store_tensors", action="store_true")
+parser.add_argument("--qual_results", action="store_true")
 parser.add_argument("--fam_to_id_mapping", type=str, required=True)
 parser.add_argument("--translate_augmentation", type=float, default=20.0)
-parser.add_argument(
-    "--max_neurons_merged",
-    type=int,
-    default=4,
-    help="max neurons merged into a single point cloud",
-)
+parser.add_argument("--max_neurons_merged", type=int, default=4)
 
 args = parser.parse_args()
 
@@ -92,8 +66,6 @@ def main():
         max_neurons_merged=args.max_neurons_merged,
         train=False,
     )
-
-    print("max neurons merged", args.max_neurons_merged)
 
     if args.qual_results:
         reproducible_path = os.path.join(
