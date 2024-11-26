@@ -71,3 +71,21 @@ python eval_affinity.py \
     --store_tensors \
     --qual_results
 ```
+
+
+
+### Citation
+```bibtex
+@techreport{troidlgnsr2024,
+  title = {Global Neuron Shape Reasoning with Point Affinity Transformers},
+  author = {Troidl, Jakob and Knittel, Johannes and Li, Wanhua and Zhan, Fengnang and Pfister*, Hanspeter and Turaga*, Srinivas},
+  journal = {bioRxiv},
+  year = {2024},
+  publisher = {Cold Spring Harbor Laboratory},
+  keywords = {preprint}
+}
+```
+
+### Acknowledgements
+We acknowledge NSF grants CRCNS-2309041, NCS-FO-2124179, and NIH grant R01HD104969. We also thank the HHMI Janelia Visiting Scientist Program and the Harvard Data Science Initiative Postdoctoral Fellowship for their support. The code is partially based on [3DShape2VecSet](https://arxiv.org/abs/2301.11445) by Zhang et. al. 
+
