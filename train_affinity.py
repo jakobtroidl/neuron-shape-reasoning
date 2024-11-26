@@ -29,7 +29,7 @@ def get_args_parser():
     parser.add_argument("--epochs", default=800, type=int)
     parser.add_argument(
         "--accum_iter",
-        default=1,
+        default=2,
         type=int,
         help="Accumulate gradient iterations (for increasing the effective batch size under memory constraints)",
     )
@@ -91,7 +91,7 @@ def get_args_parser():
     )
 
     parser.add_argument(
-        "--warmup_epochs", type=int, default=40, metavar="N", help="epochs to warmup LR"
+        "--warmup_epochs", type=int, default=5, metavar="N", help="epochs to warmup LR"
     )
 
     parser.add_argument(
