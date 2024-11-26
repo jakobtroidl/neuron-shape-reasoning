@@ -3,22 +3,55 @@ import glob
 import torch
 import navis
 import pandas as pd
-
-import torch_geometric.transforms as Transforms
-from torch.utils.data import Dataset
-from torch_geometric.data import Data
 import json
 import os
+import torch_geometric.transforms as Transforms
+
+from torch.utils.data import Dataset
+from torch_geometric.data import Data
 
 
-class SegmentationDataReproducable(Dataset):
-    def __init__(self, 
-                 path, 
-                 # radius_transform = None
-                 ) -> None:
+    
+def build_reproducible_dataset(path, radius_transform = None):
+    dataset = MultiNeuronDatasetReproducable(path=path, radius_transform=radius_transform)
+    return dataset
+
+def build_affinity_dataset(
+        neuron_path, 
+        root_id_path, 
+        samples_per_neuron=512, 
+        scale=1.0, 
+        train=True, 
+        gnn_radius_transform=None, 
+        max_neurons_merged=4, 
+        shuffle_output=True, 
+        fam_to_id=None, 
+        translate=20.0, 
+        n_dust_neurons=6,
+        n_dust_nodes_per_neuron=32
+    ): 
+    print("Building Dataset ...")
+    dataset = MultiNeuronDataset(
+        neuron_path=neuron_path,
+        root_id_path=root_id_path,
+        samples_per_neuron=samples_per_neuron,
+        scale=scale,
+        train=train,
+        gnn_radius_transform=gnn_radius_transform,
+        max_neurons_merged=max_neurons_merged, 
+        shuffle_output=shuffle_output, 
+        fam_id_mapping_path=fam_to_id,
+        translate=translate, 
+        n_dust_neurons=n_dust_neurons,
+        n_dust_nodes_per_neuron=n_dust_nodes_per_neuron
+    )
+
+    return dataset
+
+
+class MultiNeuronDatasetReproducable(Dataset):
+    def __init__(self, path) -> None:
         self.path = path
-        # self.radius_transform = radius_transform
-
         self.n_dust_neurons = 6
         self.n_dust_nodes_per_neuron = 32
 
@@ -35,16 +68,10 @@ class SegmentationDataReproducable(Dataset):
         families = torch.load(f"{self.path}/families_{idx}.pt")
         pairs = torch.load(f"{self.path}/pairs_{idx}.pt")
         pairs_labels = torch.load(f"{self.path}/pairs_labels_{idx}.pt")
-
-        # if self.radius_transform is not None:
-        #     pc = Data(pos=pc)
-        #     pc = self.radius_transform(pc)
-        #     pairs = Data(pos=pairs)
-
         return pc, labels, mask, root_ids, families, pairs, pairs_labels
 
 
-class SegmentationData(Dataset):
+class MultiNeuronDataset(Dataset):
 
     def __init__(
         self,
@@ -264,4 +291,3 @@ class SegmentationData(Dataset):
             
 
         return pc, labels, mask, root_ids, families, pairs, pairs_labels
-        

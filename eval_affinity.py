@@ -1,21 +1,18 @@
 from tqdm import tqdm
-from util.datasets import build_affinity_dataset, build_reproducible_dataset
-import util.misc as misc
+from src.datasets import build_affinity_dataset, build_reproducible_dataset
+import src.misc as misc
 
-import models_topology
+import src.models as models
 import numpy as np
 import torch.backends.cudnn as cudnn
 import torch
 import io
 import math
 
-import util.cluster as clustering
-import util.metrics as metrics
-from PIL import Image
+import src.cluster as clustering
+import src.metrics as metrics
 import os
 import time
-
-
 
 
 import argparse
@@ -49,7 +46,7 @@ def main():
     np.random.seed(seed)
     cudnn.benchmark = True
 
-    model = models_topology.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
+    model = models.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
     device = torch.device(args.device)
     model.eval()
     module = torch.load(args.pth, map_location='cpu')['model']
@@ -141,11 +138,10 @@ def main():
                 gt_matrix = gt_matrix[:pred_matrix.shape[0], :pred_matrix.shape[1]]
 
                 tp, fp, fn, tn = metrics.confusion_matrix(pred_matrix, gt_matrix)
-                ars = clustering.adjusted_rand_score(pred_labels.squeeze().cpu().numpy(), masked_labels.squeeze().cpu().numpy())
-                # var_of_info = clustering.voi(pred_labels.squeeze().cpu().numpy(), masked_labels.squeeze().cpu().numpy())
+                ars = metrics.adjusted_rand_score(pred_labels.squeeze().cpu().numpy(), masked_labels.squeeze().cpu().numpy())
 
-                voi, voi_split, voi_merge = clustering.voi(pred_labels.squeeze().cpu().numpy(), masked_labels.squeeze().cpu().numpy())
-                are, are_prec, are_recall = clustering.adjusted_rand_error(pred_labels.squeeze().cpu().numpy(), masked_labels.squeeze().cpu().numpy())
+                voi, voi_split, voi_merge = metrics.voi(pred_labels.squeeze().cpu().numpy(), masked_labels.squeeze().cpu().numpy())
+                are, are_prec, are_recall = metrics.adjusted_rand_error(pred_labels.squeeze().cpu().numpy(), masked_labels.squeeze().cpu().numpy())
                 
                 all_metrics.append([tp, fp, fn, tn, voi, ars, voi_split, voi_merge, are, are_prec, are_recall])
 
@@ -186,18 +182,6 @@ def main():
         recall = tp / (tp + fn)
         f1 = 2 * (precision * recall) / (precision + recall)
         accuracy = (tp + tn) / (tp + tn + fp + fn)
-        
-        # string_buffer.write(f"Evaluation Results: Threshold {t}\n")
-        # string_buffer.write(f"\n")
-        # string_buffer.write(f"Our Approach:\n")   
-        # string_buffer.write(f"Distances - Mean Test BCE Loss: {np.mean(affinity_losses)}\n")
-        # string_buffer.write(f"Accuracy: {torch.round(accuracy, decimals=2)}\n")
-        # string_buffer.write(f"Precision: {torch.round(precision, decimals=2)}\n")
-        # string_buffer.write(f"Recall: {torch.round(recall, decimals=2)}\n")
-        # string_buffer.write(f"F1: {torch.round(f1, decimals=2)}\n")
-        # string_buffer.write(f"Variation of Information: {torch.round(voi_mean, decimals=2)}\n")
-        # string_buffer.write(f"Adjusted Rand Score: {torch.round(ars_mean, decimals=2)}\n")
-        # string_buffer.write(f"-----------------------------")
 
         string_buffer.write(f"-----------------------------\n")
         string_buffer.write(f"Evaluation Results Threshold {t}:\n")
@@ -221,7 +205,6 @@ def main():
         string_buffer.write(f"\n")
 
     end = time.time()
-
     
     string_buffer.write(f"Best VOI Score: {torch.round(best_voi, decimals=2)}, t: {best_threshold}\n")
     string_buffer.write(f"Dataset: {args.data_path}\n")

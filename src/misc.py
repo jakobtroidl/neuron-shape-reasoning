@@ -5,7 +5,6 @@
 # BEiT: https://github.com/microsoft/unilm/tree/master/beit
 # --------------------------------------------------------
 
-import builtins
 import datetime
 import os
 import time
@@ -33,34 +32,33 @@ import plotly.graph_objects as go
 
 
 
+# def project_pc_to_image(
+#     pc_coords: torch.Tensor,
+#     pc_values: torch.Tensor,
+#     axis: int = 2,
+# ) -> torch.Tensor:
+#     """
+#     Project the values of a point cloud to a 2D image along a specified axis.
+#     """
 
-def project_pc_to_image(
-    pc_coords: torch.Tensor,
-    pc_values: torch.Tensor,
-    axis: int = 2,
-) -> torch.Tensor:
-    """
-    Project the values of a point cloud to a 2D image along a specified axis.
-    """
+#     im_size = 256
+#     batch_size = pc_coords.size(0)
+#     indices = torch.arange(pc_coords.size(-1)) != axis
+#     coords = pc_coords[..., indices]
 
-    im_size = 256
-    batch_size = pc_coords.size(0)
-    indices = torch.arange(pc_coords.size(-1)) != axis
-    coords = pc_coords[..., indices]
+#     print("min max of pc coords", coords.min(), coords.max())
 
-    print("min max of pc coords", coords.min(), coords.max())
+#     coords = (coords - coords.min()) / (coords.max() - coords.min()) * (im_size - 1)
+#     coords = coords.int()
 
-    coords = (coords - coords.min()) / (coords.max() - coords.min()) * (im_size - 1)
-    coords = coords.int()
+#     print("min max of coords", coords.min(), coords.max())
 
-    print("min max of coords", coords.min(), coords.max())
-
-    # create the image
-    image = torch.zeros((batch_size, im_size, im_size), dtype=pc_values.dtype, device=pc_values.device)
-    image[..., coords[..., 0], coords[..., 1]] = pc_values
+#     # create the image
+#     image = torch.zeros((batch_size, im_size, im_size), dtype=pc_values.dtype, device=pc_values.device)
+#     image[..., coords[..., 0], coords[..., 1]] = pc_values
 
 
-    return image
+#     return image
 
 
 class SmoothedValue(object):
@@ -209,21 +207,21 @@ class MetricLogger(object):
             header, total_time_str, total_time / len(iterable)))
 
 
-def setup_for_distributed(is_master):
-    """
-    This function disables printing when not in master process
-    """
-    builtin_print = builtins.print
+# def setup_for_distributed(is_master):
+#     """
+#     This function disables printing when not in master process
+#     """
+#     builtin_print = builtins.print
 
-    def print(*args, **kwargs):
-        force = kwargs.pop('force', False)
-        force = force or (get_world_size() > 8)
-        if is_master or force:
-            now = datetime.datetime.now().time()
-            builtin_print('[{}] '.format(now), end='')  # print with time stamp
-            builtin_print(*args, **kwargs)
+#     def print(*args, **kwargs):
+#         force = kwargs.pop('force', False)
+#         force = force or (get_world_size() > 8)
+#         if is_master or force:
+#             now = datetime.datetime.now().time()
+#             builtin_print('[{}] '.format(now), end='')  # print with time stamp
+#             builtin_print(*args, **kwargs)
 
-    builtins.print = print
+#     builtins.print = print
 
 
 def is_dist_avail_and_initialized():
@@ -255,39 +253,39 @@ def save_on_master(*args, **kwargs):
         torch.save(*args, **kwargs)
 
 
-def init_distributed_mode(args):
-    if args.dist_on_itp:
-        args.rank = int(os.environ['OMPI_COMM_WORLD_RANK'])
-        args.world_size = int(os.environ['OMPI_COMM_WORLD_SIZE'])
-        args.gpu = int(os.environ['OMPI_COMM_WORLD_LOCAL_RANK'])
-        args.dist_url = "tcp://%s:%s" % (os.environ['MASTER_ADDR'], os.environ['MASTER_PORT'])
-        os.environ['LOCAL_RANK'] = str(args.gpu)
-        os.environ['RANK'] = str(args.rank)
-        os.environ['WORLD_SIZE'] = str(args.world_size)
-        # ["RANK", "WORLD_SIZE", "MASTER_ADDR", "MASTER_PORT", "LOCAL_RANK"]
-    elif 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        args.rank = int(os.environ["RANK"])
-        args.world_size = int(os.environ['WORLD_SIZE'])
-        args.gpu = int(os.environ['LOCAL_RANK'])
-    elif 'SLURM_PROCID' in os.environ:
-        args.rank = int(os.environ['SLURM_PROCID'])
-        args.gpu = args.rank % torch.cuda.device_count()
-    else:
-        print('Not using distributed mode')
-        setup_for_distributed(is_master=True)  # hack
-        args.distributed = False
-        return
+# def init_distributed_mode(args):
+#     if args.dist_on_itp:
+#         args.rank = int(os.environ['OMPI_COMM_WORLD_RANK'])
+#         args.world_size = int(os.environ['OMPI_COMM_WORLD_SIZE'])
+#         args.gpu = int(os.environ['OMPI_COMM_WORLD_LOCAL_RANK'])
+#         args.dist_url = "tcp://%s:%s" % (os.environ['MASTER_ADDR'], os.environ['MASTER_PORT'])
+#         os.environ['LOCAL_RANK'] = str(args.gpu)
+#         os.environ['RANK'] = str(args.rank)
+#         os.environ['WORLD_SIZE'] = str(args.world_size)
+#         # ["RANK", "WORLD_SIZE", "MASTER_ADDR", "MASTER_PORT", "LOCAL_RANK"]
+#     elif 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
+#         args.rank = int(os.environ["RANK"])
+#         args.world_size = int(os.environ['WORLD_SIZE'])
+#         args.gpu = int(os.environ['LOCAL_RANK'])
+#     elif 'SLURM_PROCID' in os.environ:
+#         args.rank = int(os.environ['SLURM_PROCID'])
+#         args.gpu = args.rank % torch.cuda.device_count()
+#     else:
+#         print('Not using distributed mode')
+#         setup_for_distributed(is_master=True)  # hack
+#         args.distributed = False
+#         return
 
-    args.distributed = True
+#     args.distributed = True
 
-    torch.cuda.set_device(args.gpu)
-    args.dist_backend = 'nccl'
-    print('| distributed init (rank {}): {}, gpu {}'.format(
-        args.rank, args.dist_url, args.gpu), flush=True)
-    torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                         world_size=args.world_size, rank=args.rank)
-    torch.distributed.barrier()
-    setup_for_distributed(args.rank == 0)
+#     torch.cuda.set_device(args.gpu)
+#     args.dist_backend = 'nccl'
+#     print('| distributed init (rank {}): {}, gpu {}'.format(
+#         args.rank, args.dist_url, args.gpu), flush=True)
+#     torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+#                                          world_size=args.world_size, rank=args.rank)
+#     torch.distributed.barrier()
+#     setup_for_distributed(args.rank == 0)
 
 
 def save_im(
@@ -320,82 +318,82 @@ def save_im(
     tensor.save(path)
 
 
-def project_neuron(
-    neuron: navis.TreeNeuron,
-    sample_density: float = 1.0,
-    x_length: int = None,
-    y_length: int = None,
-    z_length: int = None,
-) -> List[torch.Tensor]:
-    """
-    Project a neuron onto a 2D plane.
+# def project_neuron(
+#     neuron: navis.TreeNeuron,
+#     sample_density: float = 1.0,
+#     x_length: int = None,
+#     y_length: int = None,
+#     z_length: int = None,
+# ) -> List[torch.Tensor]:
+#     """
+#     Project a neuron onto a 2D plane.
 
-    Args:
-    - neuron (TreeNeuron): A navis.TreeNeuron object.
-    - sample_density (float): The density of the projection.
+#     Args:
+#     - neuron (TreeNeuron): A navis.TreeNeuron object.
+#     - sample_density (float): The density of the projection.
 
-    Returns:
-    - heatmap (Tensor): A 2D histogram tensor representing the projection.
-    """
-    bbox = torch.tensor(neuron.bbox)
-    if x_length is None:
-        x_length = int((bbox[0, 1] - bbox[0, 0]) * sample_density)
-    if y_length is None:
-        y_length = int((bbox[1, 1] - bbox[1, 0]) * sample_density)
-    if z_length is None:
-        z_length = int((bbox[2, 1] - bbox[2, 0]) * sample_density)
+#     Returns:
+#     - heatmap (Tensor): A 2D histogram tensor representing the projection.
+#     """
+#     bbox = torch.tensor(neuron.bbox)
+#     if x_length is None:
+#         x_length = int((bbox[0, 1] - bbox[0, 0]) * sample_density)
+#     if y_length is None:
+#         y_length = int((bbox[1, 1] - bbox[1, 0]) * sample_density)
+#     if z_length is None:
+#         z_length = int((bbox[2, 1] - bbox[2, 0]) * sample_density)
 
-    points = neuron.nodes[["x", "y", "z"]].values
-    points = torch.tensor(points, dtype=torch.float32)
-    xy = project_pointcloud(
-        points, "xy", bins=[int(x_length), int(y_length)], range=None
-    )
-    yz = project_pointcloud(
-        points, "yz", bins=[int(y_length), int(z_length)], range=None
-    )
-    xz = project_pointcloud(
-        points, "xz", bins=[int(x_length), int(z_length)], range=None
-    )
-    return [xy, yz, xz]
+#     points = neuron.nodes[["x", "y", "z"]].values
+#     points = torch.tensor(points, dtype=torch.float32)
+#     xy = project_pointcloud(
+#         points, "xy", bins=[int(x_length), int(y_length)], range=None
+#     )
+#     yz = project_pointcloud(
+#         points, "yz", bins=[int(y_length), int(z_length)], range=None
+#     )
+#     xz = project_pointcloud(
+#         points, "xz", bins=[int(x_length), int(z_length)], range=None
+#     )
+#     return [xy, yz, xz]
 
 
-def project_pointcloud(
-    points: torch.Tensor, plane: str, bins=100, range=None
-) -> torch.Tensor:
-    """
-    Project points onto a specified plane using histogram2d.
+# def project_pointcloud(
+#     points: torch.Tensor, plane: str, bins=100, range=None
+# ) -> torch.Tensor:
+#     """
+#     Project points onto a specified plane using histogram2d.
 
-    Args:
-    - points (Tensor): A Nx3 tensor of XYZ points.
-    - plane (str): A string 'xy', 'yz', or 'xz' indicating the projection plane.
-    - bins (int): Number of bins in the histogram (resolution of the projection).
-    - range (list of tuples): Ranges of bins in each dimension.
+#     Args:
+#     - points (Tensor): A Nx3 tensor of XYZ points.
+#     - plane (str): A string 'xy', 'yz', or 'xz' indicating the projection plane.
+#     - bins (int): Number of bins in the histogram (resolution of the projection).
+#     - range (list of tuples): Ranges of bins in each dimension.
 
-    Returns:
-    - heatmap (Tensor): A 2D histogram tensor representing the projection.
-    """
-    if plane == "xy":
-        indices = (0, 1)
-    elif plane == "yz":
-        indices = (1, 2)
-    elif plane == "xz":
-        indices = (0, 2)
-    else:
-        raise ValueError("Plane must be 'xy', 'yz', or 'xz'")
+#     Returns:
+#     - heatmap (Tensor): A 2D histogram tensor representing the projection.
+#     """
+#     if plane == "xy":
+#         indices = (0, 1)
+#     elif plane == "yz":
+#         indices = (1, 2)
+#     elif plane == "xz":
+#         indices = (0, 2)
+#     else:
+#         raise ValueError("Plane must be 'xy', 'yz', or 'xz'")
 
-    # Select the appropriate columns based on plane
-    selected_points = points[:, indices]
+#     # Select the appropriate columns based on plane
+#     selected_points = points[:, indices]
 
-    # Move tensor to CPU for compatibility with torch.histogramdd
-    selected_points = selected_points.detach().cpu()
+#     # Move tensor to CPU for compatibility with torch.histogramdd
+#     selected_points = selected_points.detach().cpu()
 
-    print(selected_points.shape)
-    print(bins)
-    print(range)
+#     print(selected_points.shape)
+#     print(bins)
+#     print(range)
 
-    # Create histogram
-    heatmap, _ = torch.histogramdd(selected_points, bins=bins, range=range)
-    return heatmap
+#     # Create histogram
+#     heatmap, _ = torch.histogramdd(selected_points, bins=bins, range=range)
+#     return heatmap
 
 
 class NativeScalerWithGradNormCount:
@@ -441,19 +439,19 @@ def get_grad_norm_(parameters, norm_type: float = 2.0) -> torch.Tensor:
         total_norm = torch.norm(torch.stack([torch.norm(p.grad.detach(), norm_type).to(device) for p in parameters]), norm_type)
     return total_norm
 
-def comp_euclidean_distance(coords: torch.tensor, pairs: torch.tensor) -> torch.tensor:
-    """
-    Compute the euclidean distance between pairs of points in a point cloud.
-    """
-    # compute the difference between the pairs of points
+# def comp_euclidean_distance(coords: torch.tensor, pairs: torch.tensor) -> torch.tensor:
+#     """
+#     Compute the euclidean distance between pairs of points in a point cloud.
+#     """
+#     # compute the difference between the pairs of points
 
-    ix = pairs[..., 0].unsqueeze(-1).expand(-1, -1, 3)
-    from_coords = torch.gather(coords, 1, ix)
-    ix = pairs[..., 1].unsqueeze(-1).expand(-1, -1, 3)
-    to_coords = torch.gather(coords, 1, ix)
-    dists = torch.pow(from_coords - to_coords, 2).sum(-1).sqrt()
+#     ix = pairs[..., 0].unsqueeze(-1).expand(-1, -1, 3)
+#     from_coords = torch.gather(coords, 1, ix)
+#     ix = pairs[..., 1].unsqueeze(-1).expand(-1, -1, 3)
+#     to_coords = torch.gather(coords, 1, ix)
+#     dists = torch.pow(from_coords - to_coords, 2).sum(-1).sqrt()
 
-    return dists
+#     return dists
 
 def save_density(path: str, x: torch.tensor, y: torch.tensor, root_ids: torch.tensor, suffix="", folder="density", bins=30) -> None:
     """
@@ -502,33 +500,33 @@ def save_density(path: str, x: torch.tensor, y: torch.tensor, root_ids: torch.te
         plt.close()
 
 
-def save_scatter(path: str, x: torch.tensor, y: torch.tensor, root_ids: torch.tensor, suffix="", folder="scatter") -> None:
-    """
-    Save scatterplot to disk.
+# def save_scatter(path: str, x: torch.tensor, y: torch.tensor, root_ids: torch.tensor, suffix="", folder="scatter") -> None:
+#     """
+#     Save scatterplot to disk.
 
-    Args:
-    - path (str): The path to save the scatterplot.
-    - x (Tensor): A tensor of x coordinates.
-    - y (Tensor): A tensor of y coordinates.
-    - root_ids (Tensor): A tensor of root_ids.
+#     Args:
+#     - path (str): The path to save the scatterplot.
+#     - x (Tensor): A tensor of x coordinates.
+#     - y (Tensor): A tensor of y coordinates.
+#     - root_ids (Tensor): A tensor of root_ids.
 
-    """
+#     """
     
-    x = x.cpu().numpy()
-    y = y.cpu().numpy()
-    root_ids = root_ids.cpu().numpy()
-    path = os.path.join(path, folder)
-    # make path if it does not exist
-    if not os.path.exists(path):
-        os.makedirs(path)
-    for i in range(x.shape[0]):
-        fig, ax = plt.subplots()
-        ax.scatter(x[i], y[i], s=1, alpha=0.2)
-        ax.set_xlabel('Ground Truth Distances')
-        ax.set_ylabel('Predicted Distances')
-        ax.set_title('Ground Truth vs Predicted Distances')
-        plt.savefig(f'{path}/{root_ids[i]}{suffix}.png')
-        plt.close()
+#     x = x.cpu().numpy()
+#     y = y.cpu().numpy()
+#     root_ids = root_ids.cpu().numpy()
+#     path = os.path.join(path, folder)
+#     # make path if it does not exist
+#     if not os.path.exists(path):
+#         os.makedirs(path)
+#     for i in range(x.shape[0]):
+#         fig, ax = plt.subplots()
+#         ax.scatter(x[i], y[i], s=1, alpha=0.2)
+#         ax.set_xlabel('Ground Truth Distances')
+#         ax.set_ylabel('Predicted Distances')
+#         ax.set_title('Ground Truth vs Predicted Distances')
+#         plt.savefig(f'{path}/{root_ids[i]}{suffix}.png')
+#         plt.close()
 
 def remove_small_clusters(labels: torch.tensor, min_size: int) -> torch.tensor:
     """
@@ -743,12 +741,12 @@ def load_model(args, model_without_ddp, optimizer, loss_scaler):
             print("With optim & sched!")
 
 
-def all_reduce_mean(x):
-    world_size = get_world_size()
-    if world_size > 1:
-        x_reduce = torch.tensor(x).cuda()
-        dist.all_reduce(x_reduce)
-        x_reduce /= world_size
-        return x_reduce.item()
-    else:
-        return x
+# def all_reduce_mean(x):
+#     world_size = get_world_size()
+#     if world_size > 1:
+#         x_reduce = torch.tensor(x).cuda()
+#         dist.all_reduce(x_reduce)
+#         x_reduce /= world_size
+#         return x_reduce.item()
+#     else:
+#         return x

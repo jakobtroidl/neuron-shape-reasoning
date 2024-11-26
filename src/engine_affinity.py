@@ -10,8 +10,8 @@ import sys
 from typing import Iterable
 import torch
 
-import util.misc as misc
-import util.lr_sched as lr_sched
+import src.misc as misc
+import src.lr_sched as lr_sched
 import wandb
 
 
@@ -42,9 +42,8 @@ def train_one_epoch(
             lr_sched.adjust_learning_rate(optimizer, data_iter_step / len(data_loader) + epoch, args)
 
         pc = pc.to(device, non_blocking=True)  # query coords
-        labels = labels.to(device, non_blocking=True)  # cell type labels {0, 1, 2, 3, ...} for pc
+        labels = labels.to(device, non_blocking=True)
         mask = mask.to(device, non_blocking=True)  # mask for pc
-        # queries = queries.to(device, non_blocking=True)  # query coords
         pairs = pairs.to(device, non_blocking=True)  # pairs of indices for distance matrix
         pairs_labels = pairs_labels.to(device, non_blocking=True)  # distance matrix
 
@@ -77,7 +76,6 @@ def train_one_epoch(
         if (data_iter_step + 1) % accum_iter == 0:
             optimizer.zero_grad()
 
-        # torch.cuda.synchronize()
         metric_logger.update(loss=loss_value)
         metric_logger.update(loss_vol=loss.item())
 
@@ -94,7 +92,6 @@ def train_one_epoch(
         gpu_memory_allocated = torch.cuda.max_memory_allocated(i) / (1024 ** 3)  # Convert to GB
         print(f"GPU {i} max memory allocated: {gpu_memory_allocated:.2f} GB")
 
-    # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print("Averaged stats:", metric_logger)
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}

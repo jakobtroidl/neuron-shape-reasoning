@@ -1,18 +1,47 @@
 from functools import wraps
-
 import numpy as np
-
 import torch
-from torch import nn, einsum
 import torch.nn.functional as F
+import torch.nn as nn
 
+from torch import nn, einsum
 from einops import rearrange, repeat
-
-from torch_cluster import fps
-
 from timm.models.layers import DropPath
-from util.neuron_dataset import project_pointcloud, save_im
-from decoders.deepset import DeepSet
+
+
+class DeepSet(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim):
+        super(DeepSet, self).__init__()
+        self.phi = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
+        )
+        self.rho = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, output_dim)
+        )
+    
+    def forward(self, x, normalize=False):
+        phi_output = self.phi(x)        
+        aggregated = phi_output.sum(dim=1)
+        output = self.rho(aggregated)
+
+        if normalize:
+            output = torch.nn.functional.normalize(output, p=2, dim=1)
+
+        return output
+
+class EmbProjector(nn.Module):
+    def __init__(self, emb_dim, hidden_dim, output_dim):
+        super(EmbProjector, self).__init__()
+        self.deepset = DeepSet(emb_dim, hidden_dim, output_dim)
+    
+    def forward(self, x, normalize=False):
+        output = self.deepset(x, normalize=normalize)
+        return output  
 
 def exists(val):
     return val is not None
@@ -141,55 +170,6 @@ class PointEmbed(nn.Module):
         pe = self.embed(input, self.basis)
         embed = self.mlp(torch.cat([pe, input], dim=2))  # B x N x C
         return embed
-
-
-# class DiagonalGaussianDistribution(object):
-#     def __init__(self, mean, logvar, deterministic=False):
-#         self.mean = mean
-#         self.logvar = logvar
-#         self.logvar = torch.clamp(self.logvar, -30.0, 20.0)
-#         self.deterministic = deterministic
-#         self.std = torch.exp(0.5 * self.logvar)
-#         self.var = torch.exp(self.logvar)
-#         if self.deterministic:
-#             self.var = self.std = torch.zeros_like(self.mean).to(device=self.mean.device)
-
-#     def sample(self):
-#         x = self.mean + self.std * torch.randn(self.mean.shape).to(device=self.mean.device)
-#         return x
-
-#     def kl(self, other=None):
-#         if self.deterministic:
-#             return torch.Tensor([0.])
-#         else:
-#             if other is None:
-#                 return 0.5 * torch.mean(torch.pow(self.mean, 2)
-#                                        + self.var - 1.0 - self.logvar,
-#                                        dim=[1, 2])
-#             else:
-#                 return 0.5 * torch.mean(
-#                     torch.pow(self.mean - other.mean, 2) / other.var
-#                     + self.var / other.var - 1.0 - self.logvar + other.logvar,
-#                     dim=[1, 2, 3])
-
-#     def nll(self, sample, dims=[1,2,3]):
-#         if self.deterministic:
-#             return torch.Tensor([0.])
-#         logtwopi = np.log(2.0 * np.pi)
-#         return 0.5 * torch.sum(
-#             logtwopi + self.logvar + torch.pow(sample - self.mean, 2) / self.var,
-#             dim=dims)
-
-#     def mode(self):
-#         return self.mean
-    
-# class BoundedSoftplus(nn.Module):
-#     def __init__(self, upper_bound=1.0):
-#         super().__init__()
-#         self.upper_bound = upper_bound
-
-#     def forward(self, x):
-#         return F.softplus(x) - F.softplus(x - self.upper_bound)
     
 class MLP(nn.Module):
     def __init__(self, input_dim):
@@ -205,7 +185,7 @@ class MLP(nn.Module):
         return self.fc(x)
 
 
-class AutoEncoder(nn.Module):
+class PointAffinityTransformer(nn.Module):
 
     def __init__(
         self,
@@ -214,7 +194,6 @@ class AutoEncoder(nn.Module):
         dim=512,
         num_latents=512,
         queries_dim=512,
-        # num_inputs=8192,
         heads=8,
         dim_head=64,
         weight_tie_layers=False,
@@ -290,13 +269,12 @@ def pair(data: torch.tensor, pairs: torch.tensor):
 
 
 
-def create_autoencoder(dim=512, num_latents=256, N=8192, depth=24):
-    model = AutoEncoder(
+def create_pat(dim=512, num_latents=256, N=8192, depth=24):
+    model = PointAffinityTransformer(
         depth=depth,
         dim=dim,
         num_latents=num_latents,
         queries_dim=dim,
-        # num_inputs = N,
         heads = 8,
         dim_head = 64,
     )
@@ -306,80 +284,80 @@ def create_autoencoder(dim=512, num_latents=256, N=8192, depth=24):
 
 
 def ae_d2048_m64(N=8192, depth=24):
-    return create_autoencoder(dim=2048, num_latents=64, N=N, depth=depth)
+    return create_pat(dim=2048, num_latents=64, N=N, depth=depth)
 
 def ae_d1024_m64(N=8192, depth=24):
-    return create_autoencoder(dim=1024, num_latents=64, N=N, depth=depth)
+    return create_pat(dim=1024, num_latents=64, N=N, depth=depth)
 
 def ae_d512_m64(N=8192, depth=24):
-    return create_autoencoder(dim=512, num_latents=64, N=N, depth=depth)
+    return create_pat(dim=512, num_latents=64, N=N, depth=depth)
 
 def ae_d256_m64(N=8192, depth=24):
-    return create_autoencoder(dim=256, num_latents=64, N=N, depth=depth)
+    return create_pat(dim=256, num_latents=64, N=N, depth=depth)
 
 def ae_d128_m64(N=8192, depth=24):
-    return create_autoencoder(dim=128, num_latents=64, N=N, depth=depth)
+    return create_pat(dim=128, num_latents=64, N=N, depth=depth)
 
 def ae_d64_m64(N=8192, depth=24):
-    return create_autoencoder(dim=64, num_latents=64, N=N, depth=depth)
+    return create_pat(dim=64, num_latents=64, N=N, depth=depth)
 
 
 
 ###
 def ae_d2048_m256(N=8192, depth=24):
-    return create_autoencoder(dim=2048, num_latents=256, N=N, depth=depth)
+    return create_pat(dim=2048, num_latents=256, N=N, depth=depth)
 
 def ae_d1024_m256(N=8192, depth=24):
-    return create_autoencoder(dim=1024, num_latents=256, N=N, depth=depth)
+    return create_pat(dim=1024, num_latents=256, N=N, depth=depth)
 
 def ae_d512_m256(N=8192, depth=24):
-    return create_autoencoder(dim=512, num_latents=256, N=N, depth=depth)
+    return create_pat(dim=512, num_latents=256, N=N, depth=depth)
 
 def ae_d256_m256(N=8192, depth=24):
-    return create_autoencoder(dim=256, num_latents=256, N=N, depth=depth)
+    return create_pat(dim=256, num_latents=256, N=N, depth=depth)
 
 def ae_d128_m256(N=8192, depth=24):
-    return create_autoencoder(dim=128, num_latents=256, N=N, depth=depth)
+    return create_pat(dim=128, num_latents=256, N=N, depth=depth)
 
 def ae_d64_m256(N=8192, depth=24):
-    return create_autoencoder(dim=64, num_latents=256, N=N, depth=depth)
+    return create_pat(dim=64, num_latents=256, N=N, depth=depth)
 
 
 ### 512
 def ae_d2048_m512(N=8192, depth=24):
-    return create_autoencoder(dim=2048, num_latents=512, N=N, depth=depth)
+    return create_pat(dim=2048, num_latents=512, N=N, depth=depth)
 
 def ae_d1024_m512(N=8192, depth=24):
-    return create_autoencoder(dim=1024, num_latents=512, N=N, depth=depth)
+    return create_pat(dim=1024, num_latents=512, N=N, depth=depth)
 
 def ae_d512_m512(N=8192, depth=24):
-    return create_autoencoder(dim=512, num_latents=512, N=N, depth=depth)
+    return create_pat(dim=512, num_latents=512, N=N, depth=depth)
 
 def ae_d256_m512(N=8192, depth=24):
-    return create_autoencoder(dim=256, num_latents=512, N=N, depth=depth)
+    return create_pat(dim=256, num_latents=512, N=N, depth=depth)
 
 def ae_d128_m512(N=8192, depth=24):
-    return create_autoencoder(dim=128, num_latents=512, N=N, depth=depth)
+    return create_pat(dim=128, num_latents=512, N=N, depth=depth)
 
 def ae_d64_m512(N=8192, depth=24):
-    return create_autoencoder(dim=64, num_latents=512, N=N, depth=depth)
+    return create_pat(dim=64, num_latents=512, N=N, depth=depth)
 
 
 ### 1024
 def ae_d2048_m1024(N=8192, depth=24):
-    return create_autoencoder(dim=2048, num_latents=1024, N=N, depth=depth)
+    return create_pat(dim=2048, num_latents=1024, N=N, depth=depth)
 
 def ae_d1024_m1024(N=8192, depth=24):
-    return create_autoencoder(dim=1024, num_latents=1024, N=N, depth=depth)
+    return create_pat(dim=1024, num_latents=1024, N=N, depth=depth)
 
 def ae_d512_m1024(N=8192, depth=24):
-    return create_autoencoder(dim=512, num_latents=1024, N=N, depth=depth)
+    return create_pat(dim=512, num_latents=1024, N=N, depth=depth)
 
 def ae_d256_m1024(N=8192, depth=24):
-    return create_autoencoder(dim=256, num_latents=1024, N=N, depth=depth)
+    return create_pat(dim=256, num_latents=1024, N=N, depth=depth)
 
 def ae_d128_m1024(N=8192, depth=24):
-    return create_autoencoder(dim=128, num_latents=1024, N=N, depth=depth)
+    return create_pat(dim=128, num_latents=1024, N=N, depth=depth)
 
 def ae_d64_m1024(N=8192, depth=24):
-    return create_autoencoder(dim=64, num_latents=1024, N=N, depth=depth)
+    return create_pat(dim=64, num_latents=1024, N=N, depth=depth)

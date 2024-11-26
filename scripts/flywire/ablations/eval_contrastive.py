@@ -1,18 +1,17 @@
 from tqdm import tqdm
-from util.datasets import build_affinity_dataset
-from model_contrastive import EmbProjector
-import util.misc as misc
+from src.datasets import build_affinity_dataset
+from src.models import EmbProjector
+import src.misc as misc
 
-import models_topology
+import src.models as models
 import numpy as np
 import torch.backends.cudnn as cudnn
 import torch
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
-import util.metrics as metrics
+import src.metrics as metrics
 import io
 import os
 
@@ -72,7 +71,7 @@ def main():
     np.random.seed(seed)
     cudnn.benchmark = True
 
-    encoder_model = models_topology.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
+    encoder_model = models.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
     device = torch.device(args.device)
     encoder_model.eval()
     module = torch.load(args.encoder_pth, map_location='cpu')['model']

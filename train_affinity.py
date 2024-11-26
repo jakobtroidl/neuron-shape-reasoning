@@ -1,6 +1,7 @@
-from util.datasets import build_neuron_dataset
-from util.misc import NativeScalerWithGradNormCount as NativeScaler
-from engine_ae import train_one_epoch
+from src.datasets import build_affinity_dataset
+
+from src.misc import NativeScalerWithGradNormCount as NativeScaler
+from src.engine_affinity import train_one_epoch
 
 import argparse
 import datetime
@@ -9,14 +10,12 @@ import os
 import time
 from pathlib import Path
 import wandb
-import util.misc as misc
-import models_ae
+import src.misc as misc
+import src.models as models
 
 import torch
 import torch.backends.cudnn as cudnn
-
-torch.set_num_threads(8)
-
+import torch.nn as nn
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Autoencoder', add_help=False)
@@ -31,10 +30,12 @@ def get_args_parser():
                         help='Name of model to train')
 
     parser.add_argument("--data_path", type=str, required=True)
+    parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
+    parser.add_argument("--repeat_dataset", type=int, default=1)
+    parser.add_argument('--types_path', type=str, required=True)
 
     parser.add_argument('--point_cloud_size', default=2048, type=int,
                         help='input size')
-
     # Optimizer parameters
     parser.add_argument('--clip_grad', type=float, default=None, metavar='NORM',
                         help='Clip gradient norm (default: None, no clipping)')
@@ -84,7 +85,7 @@ def get_args_parser():
                         help='Perform evaluation only')
     parser.add_argument('--dist_eval', action='store_true', default=False,
                         help='Enabling distributed evaluation (recommended during training for faster monitor')
-    parser.add_argument('--num_workers', default=60, type=int)
+    parser.add_argument('--num_workers', default=4, type=int)
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
@@ -97,16 +98,18 @@ def get_args_parser():
     parser.add_argument("--dist_on_itp", default=False, type=bool)
     parser.add_argument('--dist_url', default='env://',
                         help='url used to set up distributed training')
+    
+    parser.add_argument("--depth", default=24, type=int)
+    parser.add_argument("--fam_to_id_mapping", type=str, required=True)
+    parser.add_argument("--translate_augmentation", type=float, default=20.0)
 
     return parser
 
 def main(args):
-    # misc.init_distributed_mode(args)
-    torch.multiprocessing.set_start_method("spawn")
-
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(', ', ',\n'))
-
+    
+    # set GPU device
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
@@ -124,52 +127,33 @@ def main(args):
         },
     )
 
-    dataset_train = build_neuron_dataset(
-        root=args.data_path, samples_per_neuron=args.point_cloud_size, split="train"
+    dataset_train = build_affinity_dataset(
+        neuron_path=args.data_path,
+        root_id_path=args.types_path,
+        samples_per_neuron=args.point_cloud_size,
+        scale = args.data_global_scale_factor,
+        fam_to_id=args.fam_to_id_mapping,
+        translate=args.translate_augmentation
     )
-
-    # if False:
-    #     num_tasks = misc.get_world_size()
-    #     global_rank = misc.get_rank()
-    #     sampler_train = torch.utils.data.DistributedSampler(
-    #         dataset_train, num_replicas=num_tasks, rank=global_rank, shuffle=True
-    #     )
-    #     print("Sampler_train = %s" % str(sampler_train))
-    #     if args.dist_eval:
-    #         if len(dataset_val) % num_tasks != 0:
-    #             print('Warning: Enabling distributed evaluation with an eval dataset not divisible by process number. '
-    #                   'This will slightly alter validation results as extra duplicate entries are added to achieve '
-    #                   'equal num of samples per-process.')
-    #         sampler_val = torch.utils.data.DistributedSampler(
-    #             dataset_val, num_replicas=num_tasks, rank=global_rank, shuffle=True)  # shuffle=True to reduce monitor bias
-    #     else:
-    #         sampler_val = torch.utils.data.SequentialSampler(dataset_val)
-    # else:
-    sampler_train = torch.utils.data.RandomSampler(dataset_train)
 
     data_loader_train = torch.utils.data.DataLoader(
-        dataset_train, sampler=sampler_train,
+        dataset_train,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        pin_memory=args.pin_mem,
-        drop_last=True,
         prefetch_factor=2,
+        shuffle=True,
     )
 
-    # data_loader_val = torch.utils.data.DataLoader(
-    #     dataset_val, sampler=sampler_val,
-    #     # batch_size=args.batch_size,
-    #     batch_size=1,
-    #     # num_workers=args.num_workers,
-    #     num_workers=1,
-    #     pin_memory=args.pin_mem,
-    #     drop_last=False
-    # )
+    model = models.__dict__[args.model](depth=args.depth)
 
-    model = models_ae.__dict__[args.model](N=args.point_cloud_size)
+    # If multiple GPUs are available, wrap the model in DataParallel
+    if torch.cuda.device_count() > 1 and args.distributed:
+        print(f"Using {torch.cuda.device_count()} GPUs!")
+        model = nn.DataParallel(model)
+
     model.to(device)
 
-    model_without_ddp = model
+    model_without_ddp = model.module if hasattr(model, "module") else model
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     eff_batch_size = args.batch_size * args.accum_iter * misc.get_world_size()
@@ -185,19 +169,9 @@ def main(args):
     print("effective batch size: %d" % eff_batch_size)
     print("is distributed: %s" % str(args.distributed))
 
-    if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=False)
-        model_without_ddp = model.module
-
-    # # build optimizer with layer-wise lr decay (lrd)
-    # param_groups = lrd.param_groups_lrd(model_without_ddp, args.weight_decay,
-    #     no_weight_decay_list=model_without_ddp.no_weight_decay(),
-    #     layer_decay=args.layer_decay
-    # )
     optimizer = torch.optim.AdamW(model_without_ddp.parameters(), lr=args.lr)
     loss_scaler = NativeScaler()
     criterion = torch.nn.BCELoss()
-
     print("criterion = %s" % str(criterion))
     print(f"Start training for {args.epochs} epochs")
 
@@ -205,8 +179,9 @@ def main(args):
 
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
-        if args.distributed:
-            data_loader_train.sampler.set_epoch(epoch)
+        print(f"Starting epoch {epoch} ...")
+        # if args.distributed:
+        #     data_loader_train.sampler.set_epoch(epoch)
         _ = train_one_epoch(
             model,
             criterion,
@@ -218,7 +193,7 @@ def main(args):
             args.clip_grad,
             args=args,
         )
-        if args.output_dir and (epoch % 25 == 0 or epoch + 1 == args.epochs):
+        if args.output_dir and (epoch % 2 == 0 or epoch + 1 == args.epochs):
             misc.save_model(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                 loss_scaler=loss_scaler, epoch=epoch)

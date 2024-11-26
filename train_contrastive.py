@@ -1,22 +1,14 @@
-from tqdm import tqdm
-from util.datasets import build_affinity_dataset
-from model_contrastive import EmbProjector
-import util.misc as misc
+from src.datasets import build_affinity_dataset
+from src.models import EmbProjector
+import src.misc as misc
 
-import models_topology
+import src.models as models
 import numpy as np
 import torch.backends.cudnn as cudnn
 import torch
-import io
-import math
 from torch.optim import AdamW
 import wandb
 
-
-import util.cluster as clustering
-import util.metrics as metrics
-from PIL import Image
-import os
 from pytorch_metric_learning import losses
 from torch.optim.lr_scheduler import CosineAnnealingLR
 import secrets
@@ -63,7 +55,7 @@ def main():
         },
     )
 
-    encoder_model = models_topology.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
+    encoder_model = models.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
     device = torch.device(args.device)
     encoder_model.eval()
     module = torch.load(args.pth, map_location='cpu')['model']
