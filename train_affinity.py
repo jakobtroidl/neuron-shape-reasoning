@@ -37,7 +37,7 @@ def get_args_parser():
     # Model parameters
     parser.add_argument(
         "--model",
-        default="ae_blob64",
+        default="ae_d1024_m512",
         type=str,
         metavar="MODEL",
         help="Name of model to train",

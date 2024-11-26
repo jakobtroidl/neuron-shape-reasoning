@@ -20,7 +20,7 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--model",
-    default="kl_d512_m512_l8",
+    default="ae_d1024_m512",
     type=str,
     metavar="MODEL",
     help="Name of model to train",

@@ -40,18 +40,34 @@ pip install -r requirements.txt
 </details>
 
 
-
 ### Getting Started
 Training a Point Affinity Transformer Model on the FlyWire dataset:
+
 ```bash
 python train_affinity.py \
-    --model ae_d1024_m512 \
     --data_path ./data/flywire_full_v783/train \
     --types_path ./data/flywire_full_v783/affinity/ol_family_balanced/affinity_train.csv \
+    --fam_to_id_mapping ./data/flywire_full_v783/types/visual_neurons_family_to_id.json \
     --output_dir ./ckpt/flywire_affinity_train \
     --log_dir ./logs/flywire_affinity_train \
-    --fam_to_id_mapping ./data/flywire_full_v783/types/visual_neurons_family_to_id.json \
     --point_cloud_size 1024 \
     --data_global_scale_factor 659.88367 \
     --lr 1e-4 \
+```
+
+Testing a Pretrained Affinity Model on the FlyWire dataset:
+
+```bash
+python eval_affinity.py \
+    --pth ./path/to/flywire_final.pth \
+    --data_path ./data/flywire_full_v783/train \
+    --types_path .data/flywire_full_v783/affinity/opticlobe_family/affinity_test_paper.csv \
+    --output_dir ./ckpt/flywire_affinity_eval \
+    --fam_to_id_mapping ./data/flywire_full_v783/types/visual_neurons_family_to_id.json \
+    --point_cloud_size 1024 \
+    --batch_size 1 \
+    --data_global_scale_factor 659.88367 \
+    --thresholds 0.8 \
+    --store_tensors \
+    --qual_results
 ```
