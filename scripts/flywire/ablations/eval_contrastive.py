@@ -66,9 +66,6 @@ def load_train_emb(path):
 
 def main():
     print(args)
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
     cudnn.benchmark = True
 
     encoder_model = models.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)

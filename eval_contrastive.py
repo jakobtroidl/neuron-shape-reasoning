@@ -8,8 +8,6 @@ import numpy as np
 import torch.backends.cudnn as cudnn
 import torch
 from sklearn.neighbors import KNeighborsClassifier
-import matplotlib.pyplot as plt
-import seaborn as sns
 import glob
 import src.metrics as metrics
 import io
@@ -66,9 +64,6 @@ def load_train_emb(path):
 
 def main():
     print(args)
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
     cudnn.benchmark = True
 
     encoder_model = models.__dict__[args.model](

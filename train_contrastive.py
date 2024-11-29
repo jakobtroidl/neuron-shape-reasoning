@@ -40,9 +40,6 @@ args = parser.parse_args()
 
 def main():
     print(args)
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
     cudnn.benchmark = True
 
     wandb.init(

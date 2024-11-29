@@ -18,7 +18,8 @@ https://github.com/user-attachments/assets/f28ef445-87d7-4427-a7ce-0ae0ac0bf7e6
 ```
 conda create --name gnsr python=3.9
 conda activate gnsr
-pip install torch torchvision torchaudio
+pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
+pip install torch_geometric # more details here https://pytorch-geometric.readthedocs.io/en/2.5.2/notes/installation.html
 pip install -r requirements.txt
 ```
 

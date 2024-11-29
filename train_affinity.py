@@ -53,7 +53,7 @@ def main(args):
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
-    seed = args.seed + misc.get_rank()
+    seed = misc.get_rank()
     torch.manual_seed(seed)
     np.random.seed(seed)
     cudnn.benchmark = True
@@ -115,15 +115,15 @@ def main(args):
     print("criterion = %s" % str(criterion))
     print(f"Start training for {args.epochs} epochs")
 
-    misc.load_model(
-        args=args,
-        model_without_ddp=model_without_ddp,
-        optimizer=optimizer,
-        loss_scaler=loss_scaler,
-    )
+    # misc.load_model(
+    #     args=args,
+    #     model_without_ddp=model_without_ddp,
+    #     optimizer=optimizer,
+    #     loss_scaler=loss_scaler,
+    # )
 
     start_time = time.time()
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(0, args.epochs):
         print(f"Starting epoch {epoch} ...")
         # if args.distributed:
         #     data_loader_train.sampler.set_epoch(epoch)

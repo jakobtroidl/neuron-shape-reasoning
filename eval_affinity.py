@@ -42,9 +42,6 @@ args = parser.parse_args()
 
 def main():
     print(args)
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
     cudnn.benchmark = True
 
     model = models.__dict__[args.model](N=args.point_cloud_size, depth=args.depth)
