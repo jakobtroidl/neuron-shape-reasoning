@@ -124,3 +124,6 @@ We acknowledge NSF grants CRCNS-2309041, NCS-FO-2124179, and NIH grant R01HD1049
 ### Contact
 Please open an issue or contact Jakob Troidl (jtroidl@g.harvard.edu) for any questions or feedback.
 
+### Know Issues
+In all datasets the `train` folder contains all data files (train + test). The actual train and test split is defined in the file given through the `--neuron_id_path` argument.
+
