@@ -1,5 +1,4 @@
 wandb/*
-data/
 output/*
 outputs/*
 logs/*
