@@ -9,7 +9,7 @@ This repository contains the official implementation of the paper "[Global Neuro
 [Wanhua Li](https://li-wanhua.github.io/), 
 [Fangneng Zhan](https://fnzhan.com/), 
 [Hanspeter Pfister*](https://vcg.seas.harvard.edu/people), 
-and [Srinivas Turaga*](https://www.janelia.org/people/srinivas-turaga). 
+and [Srinivas Turaga*](https://www.janelia.org/people/srinivas-turaga) (*equal advising). 
 
 https://github.com/user-attachments/assets/f28ef445-87d7-4427-a7ce-0ae0ac0bf7e6
 
