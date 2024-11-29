@@ -1,4 +1,4 @@
-### Data Access
+## Data Access
 Download the data with `gdown` from this [GDrive Folder](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing)
 
 ```bash
@@ -23,7 +23,7 @@ unzip hemibrain_v1.2.zip
 - [FlyWire Data](https://flywire.ai/) via [Codex](https://codex.flywire.ai/api/download)
 
 
-### Point Affinity Transformer Checkpoints
+## Point Affinity Transformer Checkpoints
 
 ```bash
 mkdir ckpt && cd ckpt
@@ -36,4 +36,14 @@ gdown https://drive.google.com/uc?id=1VvCxXsna-VZMTAtxotUBtRHlHs8ajyrX
 
 # download Hemibrain Model (~4.5GB)
 gdown https://drive.google.com/uc?id=1jFRWQF265Znk9-KK2SQQmHNoP1dTLDHu
+```
+
+## Deep Set Checkpoints
+
+```bash
+# download FlyWire Deepset (~5MB)
+gdown https://drive.google.com/uc?id=1XqP3jFNGJe5or5_tQmj_RMQB9IpoJ0Gj
+
+# download Hemibrain Deepset (~5MB)
+gdown https://drive.google.com/uc?id=1uqUnfKttXVbgClJZLP0hJQotNtrPYvG9
 ```
