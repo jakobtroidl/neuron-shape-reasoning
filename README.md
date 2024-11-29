@@ -1,6 +1,3 @@
-
-**Disclaimer: Code Still under construction**
-
 [![Paper](https://img.shields.io/badge/paper-arxiv-blue.svg?colorB=4AC8F4)](https://www.biorxiv.org/content/10.1101/2024.11.24.625067v1)
 [![Data](https://img.shields.io/badge/data-gdrive-red.svg?colorB=f25100)](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing)
 [![Models](https://img.shields.io/badge/models-gdrive-purple.svg?colorB=C46CFD)](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing)
@@ -40,7 +37,8 @@ pip install -r requirements.txt
 
 
 ### Getting Started
-Training a Point Affinity Transformer Model on the FlyWire dataset:
+
+View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/303676557368178a0d3ee6ed1794532272634729/data/README.md). Training a Point Affinity Transformer Model on the FlyWire dataset:
 
 ```bash
 python train_affinity.py \
