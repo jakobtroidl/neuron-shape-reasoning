@@ -2,7 +2,7 @@ bsub -J "AE Eval (Topology)" -n 8 -gpu "num=1" -q gpu_a100 -o logs/bold_color_pa
     --model ae_d1024_m512 \
     --pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_manc_ours_train_v1/ckpt/checkpoint-946.pth \
     --data_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/swc \
-    --types_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/affinity/test.csv \
+    --neuron_id_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/affinity/test.csv \
     --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/bold_color_paper_manc_ours_eval \
     --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/manc_v1.0/types/family_to_id.json \
     --num_workers 6 \

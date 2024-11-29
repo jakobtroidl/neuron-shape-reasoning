@@ -8,7 +8,7 @@ do
         --model ae_d1024_m512 \
         --pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_ours_train_v1/ckpt/checkpoint-946.pth \
         --data_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/swc \
-        --types_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/affinity/test.csv \
+        --neuron_id_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/affinity/test.csv \
         --output_dir "/nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_n_neurons_ablation_max_${n}" \
         --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/types/family_to_id.json \
         --num_workers 6 \

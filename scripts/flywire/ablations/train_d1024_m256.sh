@@ -2,7 +2,7 @@ bsub -J "AE Train (Topology)" -n 96 -gpu "num=8" -q gpu_h100 -o logs/paper_flywi
     --accum_iter 2 \
     --model ae_d1024_m256 \
     --data_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/train \
-    --types_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/affinity/opticlobe_family/affinity_train.csv \
+    --neuron_id_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/affinity/opticlobe_family/affinity_train.csv \
     --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_flywire_ablation_d1024_m256 \
     --log_dir /nrs/turaga/jakob/implicit-neurons/logs/ae/paper_flywire_ablation_d1024_m256 \
     --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/types/visual_neurons_family_to_id.json \

@@ -24,7 +24,7 @@ parser.add_argument("--device", default="cuda")
 parser.add_argument("--seed", default=0, type=int)
 parser.add_argument("--data_path", type=str, required=True, help="dataset path")
 parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
-parser.add_argument("--types_path", type=str, required=True)
+parser.add_argument("--neuron_id_path", type=str, required=True)
 parser.add_argument("--output_dir", type=str, required=True, help="logs dir path")
 parser.add_argument("--batch_size", default=160, type=int, help="batch_size")
 parser.add_argument("--num_workers", default=4, type=int, help="num_workers")
@@ -58,7 +58,7 @@ def main():
 
     dataset_test = build_affinity_dataset(
         neuron_path=args.data_path,
-        root_id_path=args.types_path,
+        root_id_path=args.neuron_id_path,
         samples_per_neuron=args.point_cloud_size,
         scale=args.data_global_scale_factor,
         fam_to_id=args.fam_to_id_mapping,
@@ -69,7 +69,7 @@ def main():
 
     if args.qual_results:
         reproducible_path = os.path.join(
-            os.path.dirname(args.types_path), "reproducable_items"
+            os.path.dirname(args.neuron_id_path), "reproducable_items"
         )
         dataset_test = build_reproducible_dataset(path=reproducible_path)
 
@@ -287,7 +287,7 @@ def main():
         f"Best VOI Score: {torch.round(best_voi, decimals=2)}, t: {best_threshold}\n"
     )
     string_buffer.write(f"Dataset: {args.data_path}\n")
-    string_buffer.write(f"Dataset: {args.types_path}\n")
+    string_buffer.write(f"Dataset: {args.neuron_id_path}\n")
     string_buffer.write(f"Model Checkpoint: {args.pth}\n")
     string_buffer.write(f"Model: {args.model}\n")
     string_buffer.write(f"-----------------------------")

@@ -26,7 +26,7 @@ parser.add_argument("--device", default="cuda")
 parser.add_argument("--seed", default=0, type=int)
 parser.add_argument("--data_path", type=str, required=True)
 parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
-parser.add_argument("--types_path", type=str, required=True)
+parser.add_argument("--neuron_id_path", type=str, required=True)
 parser.add_argument("--output_dir", type=str, required=True)
 parser.add_argument("--batch_size", default=160, type=int)
 parser.add_argument("--num_workers", default=4, type=int)
@@ -91,7 +91,7 @@ def main():
 
     dataset_test = build_affinity_dataset(
         neuron_path=args.data_path,
-        root_id_path=args.types_path,
+        root_id_path=args.neuron_id_path,
         samples_per_neuron=args.point_cloud_size,
         scale=args.data_global_scale_factor,
         max_neurons_merged=1,

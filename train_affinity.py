@@ -25,7 +25,7 @@ def get_args_parser():
     parser.add_argument("--model", default="ae_d1024_m512",type=str)
     parser.add_argument("--data_path", type=str, required=True)
     parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
-    parser.add_argument("--types_path", type=str, required=True)
+    parser.add_argument("--neuron_id_path", type=str, required=True)
     parser.add_argument("--point_cloud_size", default=2048, type=int)
     parser.add_argument("--clip_grad", type=float, default=None)
     parser.add_argument("--weight_decay", type=float, default=0.05)
@@ -69,7 +69,7 @@ def main(args):
 
     dataset_train = build_affinity_dataset(
         neuron_path=args.data_path,
-        root_id_path=args.types_path,
+        root_id_path=args.neuron_id_path,
         samples_per_neuron=args.point_cloud_size,
         scale=args.data_global_scale_factor,
         fam_to_id=args.fam_to_id_mapping,

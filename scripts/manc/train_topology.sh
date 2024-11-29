@@ -2,7 +2,7 @@ bsub -J "AE Train (Topology)" -n 96 -gpu "num=8" -q gpu_h100 -o logs/paper_manc_
     --accum_iter 2 \
     --model ae_d1024_m512 \
     --data_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/swc \
-    --types_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/affinity/train.csv \
+    --neuron_id_path /nrs/turaga/jakob/implicit-neurons/manc_v1.0/affinity/train.csv \
     --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_manc_ours_train_v1 \
     --log_dir /nrs/turaga/jakob/implicit-neurons/logs/ae/paper_manc_ours_train_v1 \
     --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/manc_v1.0/types/family_to_id.json \

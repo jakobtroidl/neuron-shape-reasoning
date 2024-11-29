@@ -22,7 +22,7 @@ parser.add_argument("--pth", required=True, type=str)
 parser.add_argument("--device", default="cuda")
 parser.add_argument("--data_path", type=str, required=True, help="dataset path")
 parser.add_argument("--data_global_scale_factor", type=float, default=1.0)
-parser.add_argument("--types_path", type=str, required=True)
+parser.add_argument("--neuron_id_path", type=str, required=True)
 parser.add_argument("--output_dir", type=str, required=True, help="logs dir path")
 parser.add_argument("--batch_size", default=160, type=int, help="batch_size")
 parser.add_argument("--num_workers", default=4, type=int, help="num_workers")
@@ -66,7 +66,7 @@ def main():
 
     dataset_train = build_affinity_dataset(
         neuron_path=args.data_path,
-        root_id_path=args.types_path,
+        root_id_path=args.neuron_id_path,
         samples_per_neuron=args.point_cloud_size,
         scale=args.data_global_scale_factor,
         max_neurons_merged=1,

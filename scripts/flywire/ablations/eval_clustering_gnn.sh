@@ -8,7 +8,7 @@ do
         --model pgnn_l3_dim128 \
         --pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_flywire_gnn_train/ckpt/checkpoint-180.pth \
         --data_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/train \
-        --types_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/affinity/opticlobe_family/affinity_test_paper.csv \
+        --neuron_id_path /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/affinity/opticlobe_family/affinity_test_paper.csv \
         --output_dir "/nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_flywire_gnn_eval_clustering_${t}" \
         --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/flywire_full_v783/types/visual_neurons_family_to_id.json \
         --num_workers 6 \

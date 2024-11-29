@@ -2,7 +2,7 @@ bsub -J "AE Eval (Topology)" -n 8 -gpu "num=1" -q gpu_h100 -o logs/bold_color_pa
     --model ae_d1024_m512 \
     --pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_ours_train_v1/ckpt/checkpoint-946.pth \
     --data_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/swc \
-    --types_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/affinity/test_small.csv \
+    --neuron_id_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/affinity/test_small.csv \
     --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/bold_color_paper_hemibrain_ours_eval_qualitative \
     --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/types/family_to_id.json \
     --num_workers 6 \

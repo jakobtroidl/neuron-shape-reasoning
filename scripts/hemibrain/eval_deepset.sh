@@ -3,7 +3,7 @@ bsub -J "AE Eval (DeepSet)" -n 12 -gpu "num=1" -q gpu_h100 -o logs/paper_hemibra
     --encoder_pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_ours_train_v1/ckpt/checkpoint-946.pth \
     --deep_set_pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_deepset_train_normed/ckpt/checkpoint-90.pth \
     --data_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/swc \
-    --types_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/metric/test.csv \
+    --neuron_id_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/metric/test.csv \
     --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_deepset_test \
     --train_emb_path /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_deepset_train_normed/emb_ep_90/ \
     --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/types/family_to_id.json \
