@@ -14,8 +14,11 @@ This repository contains the official implementation of the paper "[Global Neuro
 [Hanspeter Pfister*](https://vcg.seas.harvard.edu/people), 
 and [Srinivas Turaga*](https://www.janelia.org/people/srinivas-turaga). 
 
+<video controls>
+  <source src="https://github.com/jakobtroidl/neuron-shape-reasoning/blob/main/assets/teaser.mp4" type="video/mp4">
+</video>
 
-TODO add video here
+
 
 ### Overview
 TODO
