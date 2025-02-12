@@ -69,7 +69,7 @@ python eval_affinity.py \
 
 ### Contrastive Neuron Embeddings
 
-Train Deepset to produce contrastive neuron embeddings on the FlyWire dataset:
+Training and test embeddings are available in the `embeddings` folder [here](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing). Check out [this notebook](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/main/notebooks/confusion_matrix.ipynb) to generate neuron-type classification confusion matrices. If you want to train a deepset to produce contrastive neuron embeddings on the FlyWire dataset:
 
 ```bash
 python train_contrastive.py \
