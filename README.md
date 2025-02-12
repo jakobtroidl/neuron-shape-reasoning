@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 ### Getting Started
 
-View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/303676557368178a0d3ee6ed1794532272634729/data/README.md). Training a Point Affinity Transformer Model on the FlyWire dataset:
+View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/970d25cfb496f8bbbba62ba68eb087601db2f6b6/data/README.md). Training a Point Affinity Transformer Model on the FlyWire dataset:
 
 ```bash
 python train_affinity.py \
@@ -125,6 +125,6 @@ We acknowledge NSF grants CRCNS-2309041, NCS-FO-2124179, and NIH grant R01HD1049
 ### Contact
 Please open an issue or contact Jakob Troidl (jtroidl@g.harvard.edu) for any questions or feedback.
 
-### Know Issues
+### Known Issues
 In all datasets the `train` folder contains all data files (train + test). The actual train and test split is defined in the file given through the `--neuron_id_path` argument.
 
