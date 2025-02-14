@@ -33,10 +33,12 @@ pip install -r requirements.txt
   ```
 </details>
 
+### Data Access
+View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/970d25cfb496f8bbbba62ba68eb087601db2f6b6/data/README.md).
 
 ### Getting Started
 
-View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/970d25cfb496f8bbbba62ba68eb087601db2f6b6/data/README.md). Training a Point Affinity Transformer Model on the FlyWire dataset:
+Training a Point Affinity Transformer Model on the FlyWire dataset:
 
 ```bash
 python train_affinity.py \
