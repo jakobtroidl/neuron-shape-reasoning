@@ -33,10 +33,12 @@ pip install -r requirements.txt
   ```
 </details>
 
+### Data Access
+View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/970d25cfb496f8bbbba62ba68eb087601db2f6b6/data/README.md).
 
 ### Getting Started
 
-View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/970d25cfb496f8bbbba62ba68eb087601db2f6b6/data/README.md). Training a Point Affinity Transformer Model on the FlyWire dataset:
+Training a Point Affinity Transformer Model on the FlyWire dataset:
 
 ```bash
 python train_affinity.py \
@@ -69,7 +71,7 @@ python eval_affinity.py \
 
 ### Contrastive Neuron Embeddings
 
-Train Deepset to produce contrastive neuron embeddings on the FlyWire dataset:
+Training and test embeddings are available in the `embeddings` folder [here](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing). Check out [this notebook](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/main/notebooks/confusion_matrix.ipynb) to generate neuron-type classification confusion matrices. If you want to train a deepset to produce contrastive neuron embeddings on the FlyWire dataset:
 
 ```bash
 python train_contrastive.py \
