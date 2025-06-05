@@ -12,8 +12,8 @@ from torch_geometric.data import Data
 
 
     
-def build_reproducible_dataset(path, radius_transform = None):
-    dataset = MultiNeuronDatasetReproducable(path=path, radius_transform=radius_transform)
+def build_reproducible_dataset(path):
+    dataset = MultiNeuronDatasetReproducable(path=path)
     return dataset
 
 def build_affinity_dataset(
