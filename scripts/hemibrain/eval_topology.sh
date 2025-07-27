@@ -1,9 +1,9 @@
-bsub -J "AE Eval (Topology)" -n 8 -gpu "num=1" -q gpu_h100 -o /groups/turaga/home/troidlj/neuron-shape-reasoning/logs/bold_color_paper_hemibrain_ours_eval_qualitative_v2.log python eval_affinity.py \
+bsub -J "AE Eval (Topology)" -n 8 -gpu "num=1" -q gpu_h200 -o /groups/turaga/home/troidlj/neuron-shape-reasoning/logs/neurips_rebuttal_more_metrics_hemibarain.log python eval_affinity.py \
     --model ae_d1024_m512 \
     --pth /nrs/turaga/jakob/implicit-neurons/ckpt/ae/paper_hemibrain_ours_train_v1/ckpt/checkpoint-946.pth \
     --data_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/swc \
     --neuron_id_path /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/affinity/test_small.csv \
-    --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/bold_color_paper_hemibrain_ours_eval_qualitative_v2 \
+    --output_dir /nrs/turaga/jakob/implicit-neurons/ckpt/ae/neurips_rebuttal_more_metrics_hemibarain \
     --fam_to_id_mapping /nrs/turaga/jakob/implicit-neurons/hemibrain_v1.2/types/family_to_id.json \
     --num_workers 6 \
     --point_cloud_size 1024 \
@@ -11,5 +11,5 @@ bsub -J "AE Eval (Topology)" -n 8 -gpu "num=1" -q gpu_h100 -o /groups/turaga/hom
     --data_global_scale_factor 659.88367 \
     --thresholds 0.8 \
     --translate_augmentation 60 \
-    --store_tensors \
-    --qual_results \
+    # --store_tensors \
+    # --qual_results \

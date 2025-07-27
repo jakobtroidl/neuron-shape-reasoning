@@ -6,7 +6,8 @@ from sklearn.metrics import average_precision_score, top_k_accuracy_score
 from scipy.stats import entropy
 from sklearn.metrics.cluster import adjusted_rand_score as ARI
 from skimage.metrics import adapted_rand_error
-
+from sklearn.metrics import confusion_matrix as sk_confusion_matrix
+from sklearn.metrics import normalized_mutual_info_score
 
 def entropy_of_clustering(labels):
     """Compute the entropy of a clustering."""
@@ -28,6 +29,13 @@ def adjusted_rand_error(labels_true, labels_pred):
     are, are_prec, are_recall = adapted_rand_error(labels_true.astype(int), labels_pred.astype(int))
     return are, are_prec, are_recall
 
+def purity_score(labels_true, labels_pred):
+    """Compute the purity score of a clustering."""
+    matrix = sk_confusion_matrix(labels_true, labels_pred)
+    return np.sum(np.amax(matrix, axis=0)) / np.sum(matrix)
+
+def nmi_score(labels_true, labels_pred):
+    return normalized_mutual_info_score(labels_true, labels_pred)
 
 def confusion_matrix(pred_label_matrix: torch.tensor, gt_label_matrix: torch.tensor):
     """

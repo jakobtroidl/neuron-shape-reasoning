@@ -158,6 +158,16 @@ def main():
                     masked_labels.squeeze().cpu().numpy(),
                 )
 
+                purity = metrics.purity_score(
+                    pred_labels.squeeze().cpu().numpy(),
+                    masked_labels.squeeze().cpu().numpy(),
+                )
+
+                nmi = metrics.nmi_score(
+                    pred_labels.squeeze().cpu().numpy(),
+                    masked_labels.squeeze().cpu().numpy(),
+                )
+
                 all_metrics.append(
                     [
                         tp,
@@ -171,6 +181,8 @@ def main():
                         are,
                         are_prec,
                         are_recall,
+                        purity,
+                        nmi,
                     ]
                 )
 
@@ -233,6 +245,8 @@ def main():
         are_mean = torch.mean(metrics_tensor[:, 8])
         are_prec_mean = torch.mean(metrics_tensor[:, 9])
         are_recall_mean = torch.mean(metrics_tensor[:, 10])
+        purity_mean = torch.mean(metrics_tensor[:, 11])
+        nmi_mean = torch.mean(metrics_tensor[:, 12])
 
         if voi_mean < best_voi:
             best_voi = voi_mean
@@ -275,6 +289,8 @@ def main():
         string_buffer.write(
             f"Adjusted Rand Score: {torch.round(ars_mean, decimals=2)}\n"
         )
+        string_buffer.write(f"Purity Score: {torch.round(purity_mean, decimals=2)}\n")
+        string_buffer.write(f"NMI Score: {torch.round(nmi_mean, decimals=2)}\n")
         string_buffer.write(f"-----------------------------")
         string_buffer.write(f"\n")
 
