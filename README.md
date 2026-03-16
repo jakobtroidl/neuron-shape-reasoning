@@ -125,7 +125,7 @@ python eval_contrastive.py \
 We acknowledge NSF grants CRCNS-2309041, NCS-FO-2124179, and NIH grant R01HD104969. We also thank the HHMI Janelia Visiting Scientist Program and the Harvard Data Science Initiative Postdoctoral Fellowship for their support. The code is partially based on [3DShape2VecSet](https://arxiv.org/abs/2301.11445) by Zhang et. al. 
 
 ### Contact
-Please open an issue or contact Jakob Troidl (jtroidl@g.harvard.edu) for any questions or feedback.
+Please open an issue or contact Jakob Troidl (troidlj@janelia.hhmi.org) for any questions or feedback.
 
 ### Known Issues
 In all datasets the `train` folder contains all data files (train + test). The actual train and test split is defined in the file given through the `--neuron_id_path` argument.
