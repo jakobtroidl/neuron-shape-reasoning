@@ -1,4 +1,4 @@
-"""Saving, loading and downloading model weights.
+"""Saving and loading model weights.
 
 A saved model is a directory with ``model.safetensors`` and ``config.json``.
 """
@@ -19,7 +19,8 @@ from .presets import PRESETS, preset_config
 WEIGHTS_NAME = "model.safetensors"
 CONFIG_NAME = "config.json"
 
-# Released paper checkpoints (training checkpoints on Google Drive, converted on first use).
+# Paper checkpoints, used by the research code (see research/README.md). Downloaded from
+# Google Drive and converted on first use.
 PRETRAINED: dict[str, dict] = {
     "flywire": {"gdrive_id": "1MEbL3Yrci4ohQPPFPnvI9wDiq8b0wp5E"},
     "hemibrain": {"gdrive_id": "1jFRWQF265Znk9-KK2SQQmHNoP1dTLDHu"},
@@ -115,13 +116,12 @@ def _download(name: str) -> Path:
     return target
 
 
-def load_pretrained(name_or_path: str | os.PathLike = "flywire", device="cpu") -> PointAffinityTransformer:
-    """Load a model in eval mode.
+def load_pretrained(name_or_path: str | os.PathLike, device="cpu") -> PointAffinityTransformer:
+    """Load a saved model in eval mode.
 
     Args:
-        name_or_path: One of ``"flywire"``, ``"hemibrain"``, ``"manc"`` (downloaded
-            and cached on first use), a directory written by `save_pretrained`,
-            or a legacy ``.pth`` checkpoint.
+        name_or_path: A model directory, as written by `save_pretrained`,
+            ``pat export`` or a training run (``{output_dir}/model``).
         device: Device to move the model to.
     """
     path = Path(name_or_path)
@@ -133,4 +133,4 @@ def load_pretrained(name_or_path: str | os.PathLike = "flywire", device="cpu") -
         return load_legacy_checkpoint(path).to(device)
     if str(name_or_path) in PRETRAINED:
         return _load_dir(_download(str(name_or_path)), device)
-    raise FileNotFoundError(f"{name_or_path!r} is neither a known model ({', '.join(PRETRAINED)}) nor a path")
+    raise FileNotFoundError(f"No model directory at {name_or_path!r}")

@@ -1,4 +1,4 @@
-"""Training and evaluation. Requires the ``train`` extra."""
+"""Training and evaluation."""
 
 from .config import DataConfig, OptimConfig, TrainConfig, load_config
 from .data import MergedNeuronDataset, SkeletonStore, TensorDirDataset

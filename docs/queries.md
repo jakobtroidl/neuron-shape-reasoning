@@ -46,6 +46,7 @@ aff = model.decode(latents, qa, qb)              # qa, qb: (B, Q, 3), normalized
 ```
 
 !!! warning "Out-of-distribution queries"
-    The paper models only saw query points that were points of the input cloud.
-    Queries off the skeletons, or far from the cloud, have no training signal. To
-    support them, train with `query_mode: {skeleton: 1, jitter: 1}` (see [Training](training.md)).
+    With the default `query_mode: {input: 1}`, a model only sees query points that are
+    points of the input cloud. Queries off the skeletons, or far from the cloud, have no
+    training signal. To support them, train with `query_mode: {skeleton: 1, jitter: 1}`
+    (see [Training](training.md)).

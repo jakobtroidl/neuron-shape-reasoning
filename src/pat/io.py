@@ -1,16 +1,9 @@
-"""Reading neuron skeletons. Requires the ``swc`` extra (navis)."""
+"""Reading neuron skeletons."""
 
 from __future__ import annotations
 
+import navis
 import numpy as np
-
-
-def _navis():
-    try:
-        import navis
-    except ImportError as e:
-        raise ImportError("Reading SWC files needs navis: pip install 'point-affinity-transformer[swc]'") from e
-    return navis
 
 
 def load_neuron(path, units: str = "um"):
@@ -19,7 +12,6 @@ def load_neuron(path, units: str = "um"):
     Coordinates are converted to ``units`` if the file declares its units
     (as navis-written files do); otherwise they are used as they are.
     """
-    navis = _navis()
     neuron = navis.read_swc(str(path))
     if neuron.units is not None and not neuron.units.dimensionless:
         neuron = neuron.convert_units(units)

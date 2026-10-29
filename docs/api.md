@@ -41,7 +41,6 @@
 ## Saving and loading
 
 ::: pat.save_pretrained
-::: pat.convert_legacy_checkpoint
 
 ## Training
 

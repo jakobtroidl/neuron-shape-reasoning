@@ -107,7 +107,7 @@ def encode(
     """Encode one point cloud.
 
     Args:
-        model: A PAT model (see [`load_pretrained`][pat.load_pretrained]).
+        model: A PAT model, e.g. from [`load_pretrained`][pat.load_pretrained].
         points: Coordinates ``(N, 3)`` in µm, followed by the model's
             ``F = model.config.feature_dim`` feature columns if it has any.
         scale: Global scale factor; defaults to ``model.config.scale``.

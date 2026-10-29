@@ -23,7 +23,6 @@ nav:
   - Concepts: concepts.md
   - Querying affinities: queries.md
   - Training: training.md
-  - Pretrained models: pretrained.md
   - API reference: api.md
   - Citation: citation.md
 

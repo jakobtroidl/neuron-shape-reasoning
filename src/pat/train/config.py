@@ -55,7 +55,7 @@ class OptimConfig:
 class TrainConfig:
     model: str = "ae_d1024_m512"
     depth: int = 24
-    init: Optional[str] = None  # pretrained name or path to fine-tune from
+    init: Optional[str] = None  # model directory to fine-tune from
     resume: Optional[str] = None  # training checkpoint to resume
     output_dir: str = "./output"
     device: str = "cuda"

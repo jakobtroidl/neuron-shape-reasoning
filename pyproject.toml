@@ -22,12 +22,14 @@ dependencies = [
     "numpy",
     "scikit-learn>=1.2",
     "safetensors>=0.4",
+    "navis>=1.4",
+    "pandas",
+    "pyyaml",
+    "tqdm",
 ]
 
 [project.optional-dependencies]
-swc = ["navis>=1.4"]
 pretrained = ["gdown>=5"]
-train = ["navis>=1.4", "pandas", "pyyaml", "tqdm"]
 wandb = ["wandb"]
 docs = ["mkdocs-material>=9", "mkdocstrings[python]>=0.24", "mkdocs-jupyter>=0.24"]
 dev = ["pytest", "ruff", "timm", "einops", "python-voi"]  # the last three for comparing against research/legacy

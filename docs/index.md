@@ -13,7 +13,7 @@ label per point.
 ```python
 import pat
 
-model = pat.load_pretrained("flywire", device="cuda")
+model = pat.load_pretrained("my_model", device="cuda")  # trained with pat train
 seg = pat.segment(model, points_um)          # points_um: (N, 3) array in µm
 seg.labels                                   # one neuron id per point, -1 = noise
 ```
@@ -25,7 +25,7 @@ enc = pat.encode(model, points_um)            # encode once
 A = enc.affinity(queries, others)             # (Q, K) affinities between any points
 ```
 
-- **[Installation](installation.md)**: pip extras and CUDA notes
+- **[Installation](installation.md)**: pip and CUDA notes
 - **[Quickstart notebook](examples/quickstart.ipynb)**: end-to-end on Hemibrain neurons
 - **[Concepts](concepts.md)**: model, preprocessing, clustering
 - **[Training](training.md)**: train or fine-tune on your own skeletons

@@ -1,11 +1,9 @@
 # Training
 
-Training needs the `train` extra and a directory of SWC files plus a CSV with a
-`root_id` column (files are expected at `{swc_dir}/{root_id}.swc`).
+Training needs a directory of SWC files plus a CSV with a `root_id` column
+(files are expected at `{swc_dir}/{root_id}.swc`).
 
 ```bash
-pip install "point-affinity-transformer[train]"
-
 pat train research/configs/flywire.yaml                                   # one GPU
 torchrun --standalone --nproc_per_node 8 -m pat train research/configs/flywire.yaml   # multi-GPU (DDP)
 pat train config.yaml --set optim.lr=5e-5 data.query_mode="{input_valid: 1, skeleton: 1}"
@@ -13,8 +11,8 @@ pat train config.yaml --set optim.lr=5e-5 data.query_mode="{input_valid: 1, skel
 
 A run writes training checkpoints to `{output_dir}/ckpt/checkpoint-{epoch}.pt` and the
 latest model to `{output_dir}/model/`, which [`pat.load_pretrained`][pat.load_pretrained]
-reads directly. Resume with `--set resume=out/ckpt/checkpoint-100.pt`. Fine-tune from a
-paper model with `--set init=flywire`.
+reads directly. Resume with `--set resume=out/ckpt/checkpoint-100.pt`. Fine-tune an
+existing model with `--set init=path/to/model`.
 
 ## Training samples
 
@@ -59,7 +57,7 @@ train(load_config("config.yaml"), feature_fn=segment_id)
 
 The model's `feature_dim` is set from the data. With `init` pointing to a 3D model,
 the model is expanded with [`expand_features`][pat.expand_features] first, so training
-starts from the pretrained behavior. Augmentations only move the coordinates;
+starts from that model's behavior. Augmentations only move the coordinates;
 features are never jittered or rotated.
 
 ## Configuration
@@ -73,7 +71,7 @@ SWC only once.
 ## Evaluation
 
 ```bash
-pat eval research/configs/hemibrain.yaml --model hemibrain --thresholds 0.6,0.7,0.8,0.9
+pat eval research/configs/hemibrain.yaml --model ckpt/hemibrain/model --thresholds 0.6,0.7,0.8,0.9
 pat eval --model out/model --items data/hemibrain_v1.2/affinity/reproducable_items --out results.json
 ```
 
@@ -82,9 +80,8 @@ synthesized from `data.eval_neuron_ids`. Reported metrics are VOI (with split an
 terms), ARI and pairwise precision, recall and F1. Clustering follows the paper (no
 symmetrization) unless `--symmetrize` is given.
 
-## Converting checkpoints
+## Exporting checkpoints
 
 ```bash
-pat convert old_checkpoint.pth out_dir/        # research-code .pth → model directory
-pat export out/ckpt/checkpoint-100.pt out_dir/ # training checkpoint → model directory
+pat export out/ckpt/checkpoint-100.pt out_dir/   # training checkpoint → model directory
 ```

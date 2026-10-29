@@ -5,8 +5,8 @@ decoder predicts, for a pair of 3D query points, the probability that both
 belong to the same neuron. Because the point embedding acts on each point
 independently, query points do not have to be part of the encoded cloud.
 
-Module and parameter names match the original research code so that the
-published checkpoints load with ``strict=True``.
+Module and parameter names match the original research code, so its
+checkpoints load with ``strict=True``.
 """
 
 from __future__ import annotations
@@ -304,7 +304,7 @@ def expand_features(model: PointAffinityTransformer, feature_dim: int) -> PointA
 
     The input weights of the new feature columns are zero, so the copy gives
     exactly the same outputs as ``model`` until it is trained. Use this to
-    fine-tune a pretrained 3D model with additional features.
+    fine-tune a trained 3D model with additional features.
     """
     old = model.config.feature_dim
     if feature_dim < old:

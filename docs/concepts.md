@@ -39,13 +39,12 @@ model.in_dim   # 5
   same way.
 - Padding points get zero features.
 
-The paper models have `feature_dim=0`.
-[`expand_features`][pat.expand_features] turns one into a model with `F` feature
-columns whose new input weights are zero. It produces exactly the same outputs until
+[`expand_features`][pat.expand_features] turns a model trained without features
+into one with `F` feature columns whose new input weights are zero. It produces exactly the same outputs until
 it is fine-tuned, which makes it a good starting point for training with features.
 
-Model sizes are named `ae_d{D}_m{M}` ([`pat.PRESETS`][pat.PRESETS]). The paper models use
-`ae_d1024_m512` with depth 24, about 380M parameters.
+Model sizes are named `ae_d{D}_m{M}` ([`pat.PRESETS`][pat.PRESETS]). The default,
+`ae_d1024_m512` with depth 24, has about 380M parameters.
 
 ## Preprocessing
 
@@ -54,33 +53,33 @@ Model sizes are named `ae_d{D}_m{M}` ([`pat.PRESETS`][pat.PRESETS]). The paper m
 1. **Units:** coordinates are expected in **µm**. [`pat.io.read_swc`][pat.io.read_swc]
    converts SWC files that declare their units.
 2. **Normalization:** the cloud is centered on its centroid and divided by the global
-   `scale` stored in the model config (659.88367 for the paper models). A
+   `scale` stored in the model config (`data.scale` at training time). A
    [`Normalizer`][pat.Normalizer] fitted on the cloud is applied to every query
    point too, so queries and cloud share one coordinate frame.
-3. **Subsampling:** clouds larger than `model.config.num_points` (4288 for the paper
-   models) are randomly subsampled before encoding. Queries are not subsampled.
+3. **Subsampling:** clouds larger than `model.config.num_points` (the training cloud
+   size) are randomly subsampled before encoding. Queries are not subsampled.
 
 Padding is only needed to batch clouds of different sizes
 ([`pad_batch`][pat.preprocess.pad_batch]). Padded points are masked out of
 attention and do not change the encoding.
 
 !!! warning "Training distribution"
-    The paper models were trained on 1 to 4 neurons, each centered and moved by a
-    random offset of 20 to 70 µm, with 1024 nodes per neuron plus small "dust"
-    fragments. They work best on inputs that look similar: merges of a few neurons,
-    not whole brain volumes. Two properties matter in practice:
+    With the default [training recipe](training.md#training-samples), a model sees 1 to
+    4 neurons, each centered and moved by a random offset of `translate` µm, with
+    `samples_per_neuron` nodes per neuron plus small "dust" fragments. It works best
+    on inputs that look similar: merges of a few neurons, not whole brain volumes.
+    Two properties matter in practice:
 
-    - **Position.** Every training neuron sat exactly `translate` µm from the origin, and
-      the models picked this up. On Hemibrain test merges, re-centering a cloud that
+    - **Position.** Every training neuron sits exactly `translate` µm from the origin,
+      and models pick this up. On Hemibrain test merges, re-centering a cloud that
       was already in the training frame lowered ARI from 0.89–0.99 to 0.46–0.88 in
       three of four cases. Use `center=False` when your cloud is constructed like a
       training sample; keep the default `center=True` for data in brain coordinates.
-    - **Balance.** Training always used the same number of points per neuron. If one
+    - **Balance.** Training uses the same number of points per neuron. If one
       neuron has many more nodes than the others, uniform subsampling over-represents
       it and accuracy drops.
 
-    Fine-tuning with your own data distribution (see [Training](training.md)) is the
-    reliable fix for both.
+    Training on data that matches your use case is the reliable fix for both.
 
 ## Clustering
 

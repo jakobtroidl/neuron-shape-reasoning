@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install torch --index-url https://download.pytorch.org/whl/cpu
-      - run: pip install -e ".[swc,train,dev]"
+      - run: pip install -e ".[dev]"
       - run: ruff check src tests
       - run: pytest -q
 

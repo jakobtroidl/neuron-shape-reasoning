@@ -66,7 +66,7 @@ def main(argv=None):
 
     p = sub.add_parser("eval", help="evaluate segmentation on merged clouds")
     p.add_argument("config", nargs="?", help="YAML config describing the data (not needed with --items)")
-    p.add_argument("--model", required=True, help="pretrained name, model directory or legacy .pth")
+    p.add_argument("--model", required=True, help="model directory (from pat train, pat export or save_pretrained)")
     p.add_argument("--items", help="directory of pre-generated items (pc_*.pt, labels_*.pt, mask_*.pt)")
     p.add_argument("--thresholds", default="0.8")
     p.add_argument("--min-cluster-size", type=int, default=30)

@@ -7,9 +7,7 @@
 
 ### Installation
 ```bash
-pip install point-affinity-transformer                        # core: torch, numpy, scikit-learn, safetensors
-pip install "point-affinity-transformer[swc,pretrained]"      # + SWC reading and paper checkpoints
-pip install "point-affinity-transformer[train]"               # + training and evaluation
+pip install point-affinity-transformer
 ```
 The package is imported as `pat`. Install a PyTorch build matching your CUDA version first ([pytorch.org](https://pytorch.org/get-started/locally/)).
 
@@ -20,7 +18,7 @@ import pat
 from pat.io import read_swcs
 
 points, gt = read_swcs(["a.swc", "b.swc"])          # (N, 3) coordinates in µm
-model = pat.load_pretrained("hemibrain", device="cuda")
+model = pat.load_pretrained("my_model", device="cuda")  # directory from pat train or pat.save_pretrained
 
 seg = pat.segment(model, points, threshold=0.8)     # one label per point, -1 = noise
 print(seg.num_neurons, pat.metrics.voi(seg.labels, gt))
@@ -29,11 +27,9 @@ enc = pat.encode(model, points)                     # encode once ...
 A = enc.affinity(queries, others)                   # ... then query affinities between any points
 ```
 
-### Minimal Example: Your Own Point Clouds and Features
+### Point Clouds and Features
 
-Point clouds of shape `(B, N, 3)` with `D` extra features per point (e.g. an ID) are passed to the model as
-`(B, N, 3 + D)`: xyz first, then the features. Training only needs a neuron label per point. The model learns to
-predict whether two query points belong to the same neuron.
+Point clouds of shape `(B, N, 3)` with `D` extra features are passed to the model as `(B, N, 3 + D)`. Training only needs a neuron label per point.
 
 ```python
 import torch
@@ -74,27 +70,12 @@ pat.save_pretrained(model, "my_model")         # reload with pat.load_pretrained
 ```
 
 Clouds of different sizes can be padded with `pat.preprocess.pad_batch`, which returns the `mask` to pass instead of
-`None`. A pretrained 3D model can be extended to `D` features with `pat.expand_features(model, D)` and then fine-tuned
+`None`. A trained 3D model can be extended to `D` features with `pat.expand_features(model, D)` and then fine-tuned
 the same way. Training from SWC files (`pat train`, with `data.features: [radius]` or `train(cfg, feature_fn=...)`)
-is described below.
+is described in the documentation.
 
 See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example, and the documentation
 (`pip install -e ".[docs]" && mkdocs serve`) for concepts, training and the API reference.
-
-### Data and Checkpoints
-Download instructions for the FlyWire, Hemibrain and MANC data are [here](research/data/README.md).
-`pat.load_pretrained("flywire" | "hemibrain" | "manc")` downloads and caches the paper checkpoints automatically.
-
-### Training and Evaluation
-
-```bash
-pat train research/configs/flywire.yaml                                              # single GPU
-torchrun --standalone --nproc_per_node 8 -m pat train research/configs/flywire.yaml  # multi-GPU
-pat eval research/configs/hemibrain.yaml --model hemibrain --thresholds 0.7,0.8,0.9
-```
-
-Configs for all three datasets are in [`research/configs`](research/configs). Override entries with
-`--set key=value`, e.g. `--set data.query_mode="{input_valid: 1, skeleton: 1}"` to train on query points beyond the input cloud.
 
 ### Citation
 ```bibtex

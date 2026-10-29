@@ -15,6 +15,30 @@ The legacy scripts import `src.*` and must be run from `research/legacy/`. They 
 full research environment (`pip install -r research/requirements.txt`, plus `torch_geometric`).
 Paths below are relative to the repository root as before the restructuring; adjust them accordingly.
 
+### Paper checkpoints
+
+| Name | Training data | Preset | Scale | Translate (µm) |
+|---|---|---|---|---|
+| `flywire` | FlyWire v783, optic lobe | `ae_d1024_m512`, depth 24 | 659.88367 | 20 |
+| `hemibrain` | Hemibrain v1.2 | `ae_d1024_m512`, depth 24 | 659.88367 | 60 |
+| `manc` | MANC v1.0 | `ae_d1024_m512`, depth 24 | 659.88367 | 70 |
+
+The checkpoints are listed in [data/README.md](data/README.md). They are research-code training checkpoints
+(about 4.5 GB each, including optimizer state). Convert one into a `pat` model directory (1.5 GB) with
+
+```bash
+pat convert hemibrain_final.pth ckpt/hemibrain/model
+```
+
+or let `pat.load_pretrained("hemibrain")` download (needs `gdown`) and convert it into `~/.cache/pat/hemibrain`.
+Paper evaluation on the fixed test items:
+
+```bash
+pat eval --model ckpt/hemibrain/model --items data/hemibrain_v1.2/affinity/reproducable_items --thresholds 0.8
+```
+
+On Hemibrain this gives VOI 0.200, ARI 0.923 and pairwise F1 0.933 at threshold 0.8.
+
 ### Original commands
 
 Training a Point Affinity Transformer Model on the FlyWire dataset:
