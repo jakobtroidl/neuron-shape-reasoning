@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "point-affinity-transformer"
-dynamic = ["version"]
+version = "0.2.0"
 description = "Point Affinity Transformers for global neuron shape reasoning"
 readme = "README.md"
 license = "MIT"
@@ -43,14 +43,11 @@ pat = "pat.cli:main"
 Paper = "https://www.biorxiv.org/content/10.1101/2024.11.24.625067v1"
 Source = "https://github.com/jakobtroidl/neuron-shape-reasoning"
 
-[tool.hatch.version]
-path = "src/pat/__init__.py"
-
 [tool.hatch.build.targets.wheel]
 packages = ["src/pat"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/pat", "tests", "README.md", "LICENSE"]
+include = ["/src/pat", "/tests", "/README.md", "/LICENSE"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

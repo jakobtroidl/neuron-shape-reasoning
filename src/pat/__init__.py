@@ -1,12 +1,17 @@
 """Point Affinity Transformer: global neuron shape reasoning on point clouds."""
 
+from importlib.metadata import PackageNotFoundError, version
+
 from . import cluster, metrics
 from .inference import EncodedCloud, Segmentation, encode, segment
 from .model import PATConfig, PointAffinityTransformer, expand_features
 from .presets import PRESETS, create_model
 from .pretrained import load_pretrained, save_pretrained
 
-__version__ = "0.1.0"
+try:
+    __version__ = version("point-affinity-transformer")  # defined in pyproject.toml
+except PackageNotFoundError:  # running from a source tree without installing
+    __version__ = "unknown"
 
 __all__ = [
     "PATConfig",
