@@ -26,6 +26,5 @@ A = enc.affinity(queries, others)             # (Q, K) affinities between any po
 ```
 
 - **[Installation](installation.md)**: pip and CUDA notes
-- **[Quickstart notebook](examples/quickstart.ipynb)**: end-to-end on Hemibrain neurons
-- **[Concepts](concepts.md)**: model, preprocessing, clustering
-- **[Training](training.md)**: train or fine-tune on your own skeletons
+- **[API reference](api.md)**: all public functions and classes
+- **[Citation](citation.md)**: how to cite the paper

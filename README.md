@@ -71,11 +71,11 @@ pat.save_pretrained(model, "my_model")         # reload with pat.load_pretrained
 
 Clouds of different sizes can be padded with `pat.preprocess.pad_batch`, which returns the `mask` to pass instead of
 `None`. A trained 3D model can be extended to `D` features with `pat.expand_features(model, D)` and then fine-tuned
-the same way. Training from SWC files (`pat train`, with `data.features: [radius]` or `train(cfg, feature_fn=...)`)
-is described in the documentation.
+the same way. To train from SWC files, run `pat train config.yaml` (examples in [`research/configs`](research/configs)),
+optionally with `data.features: [radius]` or, from Python, `pat.train.train(cfg, feature_fn=...)`.
 
 See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example, and the documentation
-(`pip install -e ".[docs]" && mkdocs serve`) for concepts, training and the API reference.
+(`pip install -e ".[docs]" && mkdocs serve`) for the API reference.
 
 ### Citation
 ```bibtex

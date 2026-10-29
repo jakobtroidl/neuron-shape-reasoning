@@ -19,18 +19,11 @@ theme:
 nav:
   - Home: index.md
   - Installation: installation.md
-  - Quickstart notebook: examples/quickstart.ipynb
-  - Concepts: concepts.md
-  - Querying affinities: queries.md
-  - Training: training.md
   - API reference: api.md
   - Citation: citation.md
 
 plugins:
   - search
-  - mkdocs-jupyter:
-      execute: false
-      include_source: true
   - mkdocstrings:
       handlers:
         python:
