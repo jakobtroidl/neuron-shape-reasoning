@@ -14,6 +14,7 @@ import torch.nn.functional as F
 from torch.nn.parallel import DistributedDataParallel
 from torch.utils.data import DataLoader, DistributedSampler
 
+from ..model import expand_features
 from ..presets import create_model
 from ..pretrained import load_pretrained, save_pretrained
 from .checkpoint import load_checkpoint, save_checkpoint
@@ -57,13 +58,16 @@ def _setup_distributed():
     return dist.get_rank(), dist.get_world_size(), torch.device("cuda", local_rank)
 
 
-def build_model(cfg: TrainConfig, cloud_size: int):
+def build_model(cfg: TrainConfig, cloud_size: int, feature_dim: int = 0):
+    """Create the model to train, or load ``cfg.init`` and adapt it to ``feature_dim``."""
     overrides = {"scale": cfg.data.scale, "num_points": cloud_size}
     if cfg.init:
         model = load_pretrained(cfg.init)
+        if model.config.feature_dim != feature_dim:
+            model = expand_features(model, feature_dim)
         model.config.scale, model.config.num_points = cfg.data.scale, cloud_size
         return model
-    return create_model(cfg.model, depth=cfg.depth, **overrides)
+    return create_model(cfg.model, depth=cfg.depth, feature_dim=feature_dim, **overrides)
 
 
 def train_one_epoch(model, loader, optimizer, epoch, cfg: TrainConfig, device, logger: Logger, step: int):
@@ -101,19 +105,26 @@ def train_one_epoch(model, loader, optimizer, epoch, cfg: TrainConfig, device, l
     return step
 
 
-def train(cfg: TrainConfig):
+def train(cfg: TrainConfig, feature_fn=None):
     """Train (or fine-tune) a PAT model as described by ``cfg``.
 
     Writes training checkpoints to ``{output_dir}/ckpt/`` and the latest model
     in `save_pretrained` format to ``{output_dir}/model/``.
+
+    Args:
+        cfg: Training configuration.
+        feature_fn: Optional per-node feature function, see
+            [`SkeletonStore`][pat.train.SkeletonStore]. Its columns follow ``cfg.data.features``.
     """
     rank, world, device = _setup_distributed()
     device = device or torch.device(cfg.device)
     torch.manual_seed(cfg.seed + rank)
     out = Path(cfg.output_dir)
 
-    store = SkeletonStore(cfg.data.swc_dir, cfg.data.units, cfg.data.dust_size, cfg.data.cache_dir)
+    store = SkeletonStore(cfg.data.swc_dir, cfg.data.units, cfg.data.dust_size, cfg.data.cache_dir,
+                          features=cfg.data.features, feature_fn=feature_fn)
     dataset = MergedNeuronDataset(store, read_root_ids(cfg.data.neuron_ids), cfg.data, train=True)
+    feature_dim = dataset[0]["pc"].shape[1] - 3
     sampler = DistributedSampler(dataset, num_replicas=world, rank=rank, shuffle=True) if world > 1 else None
     loader = DataLoader(
         dataset,
@@ -126,7 +137,7 @@ def train(cfg: TrainConfig):
         persistent_workers=cfg.num_workers > 0,
     )
 
-    model = build_model(cfg, dataset.cloud_size).to(device)
+    model = build_model(cfg, dataset.cloud_size, feature_dim).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.optim.lr, weight_decay=cfg.optim.weight_decay)
 
     start_epoch = 0
@@ -143,7 +154,7 @@ def train(cfg: TrainConfig):
     logger = Logger(cfg, enabled=rank == 0)
     if rank == 0:
         n_params = sum(p.numel() for p in raw_model.parameters()) / 1e6
-        print(f"{cfg.model}: {n_params:.1f}M parameters, {len(dataset)} neurons, "
+        print(f"{cfg.model}: {n_params:.1f}M parameters, {feature_dim} point features, {len(dataset)} neurons, "
               f"{world} process(es), effective batch {cfg.optim.batch_size * cfg.optim.accum_iter * world}")
 
     step = start_epoch * len(loader)

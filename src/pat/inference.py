@@ -17,15 +17,17 @@ DEFAULT_CHUNK_SIZE = 16384
 class EncodedCloud:
     """A point cloud encoded by PAT. Query it with arbitrary points.
 
-    Create it with [`pat.encode`][pat.encode]. Query coordinates are given in the
-    same physical units as the encoded cloud and normalized with the cloud's
-    `normalizer`.
+    Create it with [`pat.encode`][pat.encode]. Queries are given like the encoded
+    cloud: ``(Q, 3 + F)`` with coordinates in the same physical units, followed
+    by the same ``F`` feature columns. Their coordinates are normalized with the
+    cloud's `normalizer`.
 
     Attributes:
         model: The model that produced the latents.
         latents: Latent vectors, shape ``(1, num_latents, dim)``.
         normalizer: Maps physical coordinates into the model frame.
-        points: The (possibly subsampled) points that were encoded, physical units.
+        points: The (possibly subsampled) points that were encoded, physical units,
+            including feature columns.
         index: Indices of `points` in the cloud passed to `encode`.
     """
 
@@ -40,7 +42,7 @@ class EncodedCloud:
         return self.latents.device
 
     def _embed(self, queries) -> torch.Tensor:
-        q = self.normalizer(as_points(queries, device=self.device))
+        q = self.normalizer(as_points(queries, device=self.device, dim=self.model.in_dim))
         return self.model.point_embed(q)
 
     @torch.no_grad()
@@ -48,8 +50,8 @@ class EncodedCloud:
         """Affinity of explicit point pairs.
 
         Args:
-            qa: First points ``(P, 3)``, or pairs ``(P, 2, 3)`` if ``qb`` is None.
-            qb: Second points ``(P, 3)``.
+            qa: First points ``(P, 3 + F)``, or pairs ``(P, 2, 3 + F)`` if ``qb`` is None.
+            qb: Second points ``(P, 3 + F)``.
 
         Returns:
             Affinities of shape ``(P,)``.
@@ -71,8 +73,8 @@ class EncodedCloud:
         """Affinity matrix between two sets of query points.
 
         Args:
-            queries: Points ``(Q, 3)``. Defaults to the encoded points.
-            others: Points ``(K, 3)``. Defaults to ``queries``.
+            queries: Points ``(Q, 3 + F)``. Defaults to the encoded points.
+            others: Points ``(K, 3 + F)``. Defaults to ``queries``.
 
         Returns:
             ``A[i, j]`` is the affinity of ``(queries[i], others[j])``, shape ``(Q, K)``.
@@ -106,7 +108,8 @@ def encode(
 
     Args:
         model: A PAT model (see [`load_pretrained`][pat.load_pretrained]).
-        points: Coordinates ``(N, 3)`` in µm.
+        points: Coordinates ``(N, 3)`` in µm, followed by the model's
+            ``F = model.config.feature_dim`` feature columns if it has any.
         scale: Global scale factor; defaults to ``model.config.scale``.
         center: Subtract the cloud's centroid before scaling.
         max_points: Clouds larger than this are randomly subsampled before
@@ -114,7 +117,7 @@ def encode(
         generator: Random generator for subsampling.
     """
     device = next(model.parameters()).device
-    points = as_points(points)
+    points = as_points(points, dim=model.in_dim)
     max_points = max_points or model.config.num_points
     encoded, index = subsample(points, max_points, generator=generator)
 
@@ -129,7 +132,7 @@ class Segmentation:
 
     Attributes:
         labels: Neuron label per query point, ``-1`` for noise. Shape ``(Q,)``.
-        queries: The query points, physical units.
+        queries: The query points, physical units, including feature columns.
         anchors: Indices of the queries that were clustered directly.
         affinity: Affinity matrix between the anchors.
     """
@@ -172,8 +175,8 @@ def segment(
 
     Args:
         model: A PAT model.
-        points: Cloud to encode, ``(N, 3)`` in µm.
-        queries: Points to label, ``(Q, 3)`` in µm. Defaults to ``points``.
+        points: Cloud to encode, ``(N, 3 + F)``: coordinates in µm, then features.
+        queries: Points to label, ``(Q, 3 + F)``. Defaults to ``points``.
         threshold: Distance threshold, see [`cluster_affinity`][pat.cluster.cluster_affinity].
         min_cluster_size: Minimum anchors per neuron.
         method: Clustering method for the anchors.
@@ -184,7 +187,7 @@ def segment(
         **encode_kwargs: Passed to [`encode`][pat.encode].
     """
     enc = encode(model, points, generator=generator, **encode_kwargs)
-    queries = as_points(points if queries is None else queries, device=enc.device)
+    queries = as_points(points if queries is None else queries, device=enc.device, dim=model.in_dim)
     Q = queries.shape[0]
 
     _, anchors = subsample(queries, max_anchors, generator=generator)

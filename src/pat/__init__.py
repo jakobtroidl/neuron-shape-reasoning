@@ -2,7 +2,7 @@
 
 from . import cluster, metrics
 from .inference import EncodedCloud, Segmentation, encode, segment
-from .model import PATConfig, PointAffinityTransformer
+from .model import PATConfig, PointAffinityTransformer, expand_features
 from .preprocess import Normalizer
 from .presets import PRESETS, create_model, preset_config
 from .pretrained import PRETRAINED, convert_legacy_checkpoint, load_pretrained, save_pretrained
@@ -24,6 +24,7 @@ __all__ = [
     "load_pretrained",
     "save_pretrained",
     "convert_legacy_checkpoint",
+    "expand_features",
     "cluster",
     "metrics",
 ]

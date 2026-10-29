@@ -12,6 +12,7 @@
 
 ::: pat.PointAffinityTransformer
 ::: pat.PATConfig
+::: pat.expand_features
 ::: pat.create_model
 ::: pat.preset_config
 ::: pat.PRESETS
@@ -23,6 +24,7 @@
 ::: pat.Normalizer
 ::: pat.preprocess.pad_batch
 ::: pat.preprocess.subsample
+::: pat.preprocess.as_points
 
 ## Clustering
 

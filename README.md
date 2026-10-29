@@ -38,6 +38,10 @@ enc = pat.encode(model, points)                     # encode once ...
 A = enc.affinity(queries, others)                   # ... then query affinities between any points
 ```
 
+Points can carry extra per-point features after xyz (shape `(N, 3 + F)`, e.g. an ID or the radius): create a model with
+`feature_dim=F`, or extend a pretrained 3D model with `pat.expand_features(model, F)` and fine-tune it
+(`data.features: [radius]` or `train(cfg, feature_fn=...)`).
+
 See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example, and the documentation
 (`pip install -e ".[docs]" && mkdocs serve`) for concepts, training and the API reference.
 

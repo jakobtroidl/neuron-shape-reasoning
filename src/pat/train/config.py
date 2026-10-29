@@ -21,6 +21,7 @@ class DataConfig:
     neuron_ids: str = ""  # CSV with a root_id column; SWCs are {swc_dir}/{root_id}.swc
     eval_neuron_ids: Optional[str] = None
     cache_dir: Optional[str] = None  # cache parsed skeletons as .pt files
+    features: list = field(default_factory=list)  # SWC node columns used as point features, e.g. [radius]
     units: str = "um"
     scale: float = 659.88367
     samples_per_neuron: int = 1024

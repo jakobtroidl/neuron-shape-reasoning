@@ -19,6 +19,31 @@ query pair (a, b) ──PointEmbed──► [e(a) ‖ e(b)] (2D) ──cross-att
 `PointEmbed` acts on each point independently, so a query point does not have to
 be one of the encoded points. See [Querying affinities](queries.md).
 
+## Point features
+
+Points can carry extra features after their coordinates: an input of shape
+`(N, 3 + F)` holds xyz followed by `F` feature columns, for example a segment ID,
+the skeleton radius or a predicted probability. Set `feature_dim=F` when creating
+a model:
+
+```python
+model = pat.create_model("ae_d1024_m512", feature_dim=2)
+model.in_dim   # 5
+```
+
+- Only the coordinates are Fourier-encoded, normalized and augmented. Feature
+  columns are concatenated raw to the embedding input, so put them on a sensible
+  scale yourself: roughly unit range for continuous values, and one-hot or a few
+  numeric codes rather than large raw integers for IDs.
+- Queries need the same columns as the cloud, since the decoder embeds them the
+  same way.
+- Padding points get zero features.
+
+The paper models have `feature_dim=0`.
+[`expand_features`][pat.expand_features] turns one into a model with `F` feature
+columns whose new input weights are zero. It produces exactly the same outputs until
+it is fine-tuned, which makes it a good starting point for training with features.
+
 Model sizes are named `ae_d{D}_m{M}` ([`pat.PRESETS`][pat.PRESETS]). The paper models use
 `ae_d1024_m512` with depth 24, about 380M parameters.
 

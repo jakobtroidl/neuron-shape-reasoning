@@ -26,7 +26,8 @@ def _eval(args):
     if args.items:
         dataset = TensorDirDataset(args.items)
     else:
-        store = SkeletonStore(cfg.data.swc_dir, cfg.data.units, cfg.data.dust_size, cfg.data.cache_dir)
+        store = SkeletonStore(cfg.data.swc_dir, cfg.data.units, cfg.data.dust_size, cfg.data.cache_dir,
+                              features=cfg.data.features)
         ids = read_root_ids(cfg.data.eval_neuron_ids or cfg.data.neuron_ids)
         dataset = MergedNeuronDataset(store, ids, cfg.data, train=False)
     thresholds = [float(t) for t in args.thresholds.split(",")]

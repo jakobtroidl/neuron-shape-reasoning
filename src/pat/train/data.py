@@ -9,7 +9,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import Dataset
 
-from ..io import load_neuron
+from ..io import load_neuron, node_array
 from . import augment
 from .config import DataConfig
 
@@ -19,35 +19,60 @@ QUERY_MODES = ("input", "input_valid", "skeleton", "jitter")
 class SkeletonStore:
     """Loads skeleton nodes and dust nodes (in ``units``) by root id.
 
+    Nodes are returned as ``(N, 3 + F)``: xyz followed by per-node features.
+    Features are the SWC node-table columns named in ``features`` (e.g.
+    ``"radius"``), followed by the columns returned by ``feature_fn``.
+
     Dust nodes are the terminal twigs shorter than ``dust_size``. With a
     ``cache_dir``, parsed skeletons are stored as ``.pt`` files so each SWC is
-    parsed only once.
+    parsed only once. The cache is keyed on the feature column names and the
+    name of ``feature_fn``; clear it after changing what ``feature_fn`` computes.
+
+    Args:
+        swc_dir: Directory with ``{root_id}.swc`` files.
+        units: Units to convert coordinates to.
+        dust_size: Maximum twig length counted as dust, in ``units``.
+        cache_dir: Optional cache directory.
+        features: Node-table columns to use as features.
+        feature_fn: Optional ``f(root_id, neuron) -> array (N, F)`` with one row
+            per row of ``neuron.nodes`` (a ``navis.TreeNeuron``).
     """
 
-    def __init__(self, swc_dir, units: str = "um", dust_size: float = 8.0, cache_dir=None):
+    def __init__(self, swc_dir, units: str = "um", dust_size: float = 8.0, cache_dir=None,
+                 features=(), feature_fn=None):
         self.swc_dir = Path(swc_dir)
         self.units = units
         self.dust_size = dust_size
+        self.features = list(features)
+        self.feature_fn = feature_fn
         self.cache_dir = Path(cache_dir) if cache_dir else None
         if self.cache_dir:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
 
+    @property
+    def _cache_key(self) -> list[str]:
+        return self.features + ([getattr(self.feature_fn, "__name__", "feature_fn")] if self.feature_fn else [])
+
     def load(self, root_id) -> tuple[torch.Tensor, torch.Tensor]:
-        """Return ``(nodes, dust)``, each of shape ``(N, 3)``."""
+        """Return ``(nodes, dust)``, each of shape ``(N, 3 + F)``."""
         cached = self.cache_dir / f"{root_id}.pt" if self.cache_dir else None
         if cached is not None and cached.exists():
             d = torch.load(cached, weights_only=True)
-            return d["nodes"], d["dust"]
+            if d.get("features", []) == self._cache_key:
+                return d["nodes"], d["dust"]
 
         neuron = load_neuron(self.swc_dir / f"{root_id}.swc", self.units)
-        nodes = torch.tensor(neuron.nodes[["x", "y", "z"]].values, dtype=torch.float32)
+        nodes = torch.from_numpy(node_array(neuron, self.features))
+        if self.feature_fn is not None:
+            extra = torch.as_tensor(self.feature_fn(root_id, neuron), dtype=torch.float32).reshape(len(nodes), -1)
+            nodes = torch.cat([nodes, extra], dim=1)
         pruned = neuron.prune_twigs(self.dust_size)
-        is_dust = ~neuron.nodes["node_id"].isin(pruned.nodes["node_id"])
-        dust = torch.tensor(neuron.nodes.loc[is_dust, ["x", "y", "z"]].values, dtype=torch.float32)
+        is_dust = torch.from_numpy(~neuron.nodes["node_id"].isin(pruned.nodes["node_id"]).to_numpy())
+        dust = nodes[is_dust]
 
         if cached is not None:
             tmp = cached.with_suffix(f".{os.getpid()}.tmp")
-            torch.save({"nodes": nodes, "dust": dust}, tmp)
+            torch.save({"nodes": nodes, "dust": dust, "features": self._cache_key}, tmp)
             tmp.replace(cached)
         return nodes, dust
 
@@ -64,16 +89,19 @@ class MergedNeuronDataset(Dataset):
     Item ``i`` always contains neuron ``root_ids[i]``; the partners, dust and
     augmentations are random.
 
-    Each item is a dict with
+    Points have ``3 + F`` columns: xyz followed by the store's ``F`` features.
+    Augmentations (jitter, offsets, rotation, scaling) only touch xyz. Padding
+    points, and synthetic dust drawn for neurons without short twigs, have
+    zero features. Each item is a dict with
 
-    - ``pc`` ``(C, 3)``: normalized cloud, padded to the fixed size ``C``
+    - ``pc`` ``(C, 3 + F)``: normalized cloud, padded to the fixed size ``C``
     - ``mask`` ``(C,)``: ``False`` for padding
     - ``labels`` ``(C,)``: ``0`` padding, ``1..n`` neurons, ``n+1`` dust
     - ``root_ids`` ``(max_neurons_merged,)``: merged neurons, zero padded
 
     and in training mode additionally
 
-    - ``qa``, ``qb`` ``(P, 3)``: normalized query pairs
+    - ``qa``, ``qb`` ``(P, 3 + F)``: normalized query pairs
     - ``target`` ``(P,)``: ``1`` if both queries lie on the same neuron (not dust)
 
     Query points are drawn per pair from one of the ``cfg.query_mode`` sources:
@@ -108,7 +136,14 @@ class MergedNeuronDataset(Dataset):
         choices = choices + (choices >= idx).long()  # skip idx itself
         return [self.root_ids[i] for i in choices.tolist()]
 
-    def _dust(self, idx: int) -> torch.Tensor:
+    def _place(self, points: torch.Tensor) -> torch.Tensor:
+        """Jitter and center the coordinates, then move them by a random offset."""
+        cfg = self.cfg
+        out = points.clone()
+        out[:, :3] = augment.center(augment.jitter(points[:, :3], cfg.jitter)) + augment.random_offset(cfg.translate)
+        return out
+
+    def _dust(self, idx: int, width: int) -> torch.Tensor:
         cfg = self.cfg
         out = []
         for rid in self._others(idx, cfg.n_dust_neurons):
@@ -117,9 +152,9 @@ class MergedNeuronDataset(Dataset):
             if dust.shape[0] > 0:
                 dust = dust[torch.randint(0, dust.shape[0], (k,)).sort().values]
             else:
-                dust = torch.randn(k, 3) * cfg.scale
-            out.append(augment.center(augment.jitter(dust, cfg.jitter)) + augment.random_offset(cfg.translate))
-        return torch.cat(out) if out else torch.zeros(0, 3)
+                dust = torch.cat([torch.randn(k, 3) * cfg.scale, torch.zeros(k, width - 3)], dim=1)
+            out.append(self._place(dust))
+        return torch.cat(out) if out else torch.zeros(0, width)
 
     def __getitem__(self, idx):
         cfg = self.cfg
@@ -128,27 +163,34 @@ class MergedNeuronDataset(Dataset):
 
         points, labels, skeletons = [], [], []
         for label, rid in enumerate(ids, start=1):
-            nodes = self.store.load(rid)[0]
-            nodes = augment.center(augment.jitter(nodes, cfg.jitter)) + augment.random_offset(cfg.translate)
+            nodes = self._place(self.store.load(rid)[0])
             sel = torch.randint(0, nodes.shape[0], (cfg.samples_per_neuron,)).sort().values
             points.append(nodes[sel])
             labels.append(torch.full((cfg.samples_per_neuron,), label))
             skeletons.append((nodes, label))
 
+        width = points[0].shape[1]
         dust_label = len(ids) + 1
         if self.n_dust > 0:
-            points.append(self._dust(idx))
+            points.append(self._dust(idx, width))
             labels.append(torch.full((self.n_dust,), dust_label))
 
         n = sum(p.shape[0] for p in points)
-        pc = torch.full((self.cloud_size, 3), -cfg.scale)
+        pc = torch.zeros(self.cloud_size, width)
+        pc[:, :3] = -cfg.scale
         pc[:n] = torch.cat(points)
         point_labels = torch.zeros(self.cloud_size, dtype=torch.int64)
         point_labels[:n] = torch.cat(labels)
         mask = point_labels > 0
 
         rot = augment.random_rotation(cfg.rotate_degrees)
-        pc = pc @ rot.T / cfg.scale
+
+        def transform(x):
+            x = x.clone()
+            x[:, :3] = x[:, :3] @ rot.T / cfg.scale
+            return x
+
+        pc = transform(pc)
 
         root_ids = torch.zeros(cfg.max_neurons_merged, dtype=torch.int64)
         root_ids[: len(ids)] = torch.tensor(ids, dtype=torch.int64)
@@ -157,7 +199,7 @@ class MergedNeuronDataset(Dataset):
         if not self.train:
             return item
 
-        skel = [(nodes @ rot.T / cfg.scale, torch.full((nodes.shape[0],), lab)) for nodes, lab in skeletons]
+        skel = [(transform(nodes), torch.full((nodes.shape[0],), lab)) for nodes, lab in skeletons]
         qa, qb, target = self._sample_pairs(pc, point_labels, mask, skel, dust_label)
         item.update(qa=qa, qb=qb, target=target)
         return item
@@ -169,14 +211,15 @@ class MergedNeuronDataset(Dataset):
             return pc[mask], labels[mask]
         if mode == "skeleton":
             return torch.cat([s for s, _ in skel]), torch.cat([lab for _, lab in skel])
-        # jitter
-        valid = pc[mask]
-        return valid + torch.randn_like(valid) * (self.cfg.query_jitter / self.cfg.scale), labels[mask]
+        # jitter: noise on the coordinates only
+        valid = pc[mask].clone()
+        valid[:, :3] += torch.randn_like(valid[:, :3]) * (self.cfg.query_jitter / self.cfg.scale)
+        return valid, labels[mask]
 
     def _sample_pairs(self, pc, labels, mask, skel, dust_label):
         P = self.num_pairs
         mode_of_pair = torch.multinomial(self._mode_weights, P, replacement=True)
-        qa, qb = torch.empty(P, 3), torch.empty(P, 3)
+        qa, qb = torch.empty(P, pc.shape[1]), torch.empty(P, pc.shape[1])
         la, lb = torch.empty(P, dtype=torch.int64), torch.empty(P, dtype=torch.int64)
         for m, mode in enumerate(self._modes):
             sel = mode_of_pair == m

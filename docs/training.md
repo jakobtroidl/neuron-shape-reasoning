@@ -41,6 +41,27 @@ Query points come from the sources in `query_mode`, mixed by weight:
 The loss is binary cross-entropy on the logits. The optimizer is AdamW with linear warmup
 and cosine decay; `amp: true` enables bf16 autocast.
 
+## Point features
+
+`data.features` lists SWC node-table columns to append after xyz, for example
+`features: [radius]`. For anything else, such as IDs from another source, pass a
+function from Python. It receives the root id and the `navis.TreeNeuron` and returns
+one row per node:
+
+```python
+from pat.train import load_config, train
+
+def segment_id(root_id, neuron):
+    return lookup_segment_ids(root_id, neuron.nodes["node_id"])  # (N, F) array
+
+train(load_config("config.yaml"), feature_fn=segment_id)
+```
+
+The model's `feature_dim` is set from the data. With `init` pointing to a 3D model,
+the model is expanded with [`expand_features`][pat.expand_features] first, so training
+starts from the pretrained behavior. Augmentations only move the coordinates;
+features are never jittered or rotated.
+
 ## Configuration
 
 Configs are YAML files mirroring [`TrainConfig`][pat.train.TrainConfig], with `data`

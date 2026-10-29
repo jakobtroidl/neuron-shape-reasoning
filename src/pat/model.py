@@ -33,6 +33,8 @@ class PATConfig:
         scale: Global scale factor. Coordinates (in µm) are divided by it.
         num_points: Largest cloud size seen during training. Larger inputs
             are subsampled to this size before encoding.
+        feature_dim: Number of extra per-point features after the xyz
+            coordinates. Inputs then have ``3 + feature_dim`` columns.
     """
 
     dim: int = 1024
@@ -43,6 +45,12 @@ class PATConfig:
     drop_path_rate: float = 0.1
     scale: float = 659.88367
     num_points: int = 4288
+    feature_dim: int = 0
+
+    @property
+    def in_dim(self) -> int:
+        """Number of input columns: 3 coordinates plus `feature_dim` features."""
+        return 3 + self.feature_dim
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -134,13 +142,19 @@ class Attention(nn.Module):
 
 
 class PointEmbed(nn.Module):
-    """Fourier-feature embedding of 3D coordinates, applied to each point independently."""
+    """Embedding of each point independently.
 
-    def __init__(self, hidden_dim=90, dim=128):
+    The xyz coordinates (first 3 columns) are Fourier-encoded. The encoding,
+    the raw coordinates and any extra feature columns are concatenated and
+    projected to ``dim``.
+    """
+
+    def __init__(self, hidden_dim=90, dim=128, feature_dim=0):
         super().__init__()
         assert hidden_dim % 6 == 0
 
         self.embedding_dim = hidden_dim
+        self.feature_dim = feature_dim
         n = hidden_dim // 6
         e = torch.pow(2, torch.arange(n)).float() * math.pi
         z = torch.zeros(n)
@@ -151,11 +165,16 @@ class PointEmbed(nn.Module):
         ])
         self.register_buffer("basis", e)  # 3 x hidden_dim/2
 
-        self.mlp = nn.Linear(self.embedding_dim + 3, dim)
+        self.mlp = nn.Linear(self.embedding_dim + 3 + feature_dim, dim)
 
     def forward(self, x):
-        # x: (..., 3)
-        proj = x @ self.basis
+        # x: (..., 3 + feature_dim), coordinates first
+        if x.shape[-1] != 3 + self.feature_dim:
+            raise ValueError(
+                f"Expected {3 + self.feature_dim} input columns (xyz + {self.feature_dim} features), "
+                f"got {x.shape[-1]}"
+            )
+        proj = x[..., :3] @ self.basis
         pe = torch.cat([proj.sin(), proj.cos()], dim=-1)
         return self.mlp(torch.cat([pe, x], dim=-1))
 
@@ -182,6 +201,9 @@ class PointAffinityTransformer(nn.Module):
     cloud and [`decode`][pat.PointAffinityTransformer.decode] for as many query
     pairs as needed. All coordinates must already be normalized
     (see [`Normalizer`][pat.Normalizer]).
+
+    Points and queries have ``config.in_dim = 3 + config.feature_dim`` columns:
+    xyz followed by optional per-point features.
     """
 
     def __init__(self, config: PATConfig | None = None, **overrides):
@@ -192,7 +214,7 @@ class PointAffinityTransformer(nn.Module):
         self.config = config
         dim = config.dim
 
-        self.point_embed = PointEmbed(dim=dim)
+        self.point_embed = PointEmbed(dim=dim, feature_dim=config.feature_dim)
         self.learnable_query = nn.Parameter(torch.randn(1, config.num_latents, dim))
 
         self.cross_attend_blocks = nn.ModuleList([
@@ -214,11 +236,15 @@ class PointAffinityTransformer(nn.Module):
         )
         self.mlp = MLP(dim * 2)
 
+    @property
+    def in_dim(self) -> int:
+        return self.config.in_dim
+
     def encode(self, pc: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         """Encode a batch of point clouds into latents.
 
         Args:
-            pc: Normalized points, shape ``(B, N, 3)``.
+            pc: Normalized points, shape ``(B, N, in_dim)``.
             mask: Optional boolean mask ``(B, N)``; ``False`` marks padding.
 
         Returns:
@@ -245,7 +271,7 @@ class PointAffinityTransformer(nn.Module):
 
         Args:
             latents: Output of `encode`, shape ``(B, M, dim)``.
-            qa: First query of each pair: normalized coordinates ``(B, Q, 3)``,
+            qa: First query of each pair: normalized points ``(B, Q, in_dim)``,
                 or point embeddings ``(B, Q, dim)`` if ``embedded=True``.
             qb: Second query of each pair, same format as ``qa``.
         """
@@ -271,3 +297,21 @@ class PointAffinityTransformer(nn.Module):
 
     def forward(self, pc, mask, qa, qb, *, logits: bool = False) -> torch.Tensor:
         return self.decode(self.encode(pc, mask), qa, qb, logits=logits)
+
+
+def expand_features(model: PointAffinityTransformer, feature_dim: int) -> PointAffinityTransformer:
+    """Copy of ``model`` that accepts ``feature_dim`` per-point features.
+
+    The input weights of the new feature columns are zero, so the copy gives
+    exactly the same outputs as ``model`` until it is trained. Use this to
+    fine-tune a pretrained 3D model with additional features.
+    """
+    old = model.config.feature_dim
+    if feature_dim < old:
+        raise ValueError(f"Model already has {old} features, cannot reduce to {feature_dim}")
+    new = PointAffinityTransformer(PATConfig.from_dict({**model.config.to_dict(), "feature_dim": feature_dim}))
+    state = model.state_dict()
+    w = state["point_embed.mlp.weight"]
+    state["point_embed.mlp.weight"] = torch.cat([w, w.new_zeros(w.shape[0], feature_dim - old)], dim=1)
+    new.load_state_dict(state)
+    return new.to(w.device).train(model.training)
