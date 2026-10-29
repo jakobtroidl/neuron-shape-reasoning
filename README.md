@@ -1,6 +1,7 @@
 [![Paper](https://img.shields.io/badge/paper-arxiv-blue.svg?colorB=4AC8F4)](https://www.biorxiv.org/content/10.1101/2024.11.24.625067v1)
 [![Data](https://img.shields.io/badge/data-gdrive-red.svg?colorB=f25100)](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing)
 [![Models](https://img.shields.io/badge/models-gdrive-purple.svg?colorB=C46CFD)](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing)
+[![PyPI](https://img.shields.io/pypi/v/point-affinity-transformer.svg)](https://pypi.org/project/point-affinity-transformer/)
 
 ## Point Affinity Transformers
 
@@ -74,6 +75,23 @@ Coordinates should lie within roughly [-1, 1]. Clouds of different sizes can be 
 `None`. A trained 3D model can be extended to `D` features with `pat.expand_features(model, D)` and then fine-tuned
 the same way. To train from SWC files, run `pat train config.yaml` (examples in [`research/configs`](research/configs)),
 optionally with `data.features: [radius]` or, from Python, `pat.train.train(cfg, feature_fn=...)`.
+
+### Model Sizes
+
+`pat.create_model(name)` accepts the presets `ae_d{dim}_m{latents}` for every combination below. Parameter counts are
+for the default `depth=24`; the number of latents changes them by at most 1.4%.
+
+| `dim` | Parameters | Latents (`m`) |
+|---|---|---|
+| 64 | 4.5M | 64, 256, 512, 1024 |
+| 128 | 12M | 64, 256, 512, 1024 |
+| 256 | 33M | 64, 256, 512, 1024 |
+| 512 | 108M | 64, 256, 512, 1024 |
+| 1024 | 380M | 64, 256, 512, 1024 |
+| 2048 | 1.4B | 64, 256, 512, 1024 |
+
+The paper models use `ae_d1024_m512` (the default). Other settings, such as `depth`, can be passed as keyword
+arguments, e.g. `pat.create_model("ae_d256_m64", depth=4)`.
 
 See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example, and the documentation
 (`pip install -e ".[docs]" && mkdocs serve`) for the API reference.
