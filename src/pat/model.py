@@ -30,7 +30,6 @@ class PATConfig:
         heads: Attention heads in the latent self-attention blocks.
         dim_head: Width of each attention head.
         drop_path_rate: Stochastic depth rate used during training.
-        scale: Global scale factor. Coordinates (in µm) are divided by it.
         num_points: Largest cloud size seen during training. Larger inputs
             are subsampled to this size before encoding.
         feature_dim: Number of extra per-point features after the xyz
@@ -43,7 +42,6 @@ class PATConfig:
     heads: int = 8
     dim_head: int = 64
     drop_path_rate: float = 0.1
-    scale: float = 659.88367
     num_points: int = 4288
     feature_dim: int = 0
 
@@ -199,8 +197,8 @@ class PointAffinityTransformer(nn.Module):
 
     Typical use is to call [`encode`][pat.PointAffinityTransformer.encode] once per
     cloud and [`decode`][pat.PointAffinityTransformer.decode] for as many query
-    pairs as needed. All coordinates must already be normalized
-    (see [`Normalizer`][pat.Normalizer]).
+    pairs as needed. Coordinates are used as given; normalize them the same
+    way for training and inference.
 
     Points and queries have ``config.in_dim = 3 + config.feature_dim`` columns:
     xyz followed by optional per-point features.
@@ -271,7 +269,7 @@ class PointAffinityTransformer(nn.Module):
 
         Args:
             latents: Output of `encode`, shape ``(B, M, dim)``.
-            qa: First query of each pair: normalized points ``(B, Q, in_dim)``,
+            qa: First query of each pair: points ``(B, Q, in_dim)``,
                 or point embeddings ``(B, Q, dim)`` if ``embedded=True``.
             qb: Second query of each pair, same format as ``qa``.
         """

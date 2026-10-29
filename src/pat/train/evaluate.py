@@ -8,7 +8,6 @@ from .. import metrics
 from ..cluster import cluster_affinity
 from ..inference import EncodedCloud
 from ..model import PointAffinityTransformer
-from ..preprocess import Normalizer
 
 
 @torch.no_grad()
@@ -33,7 +32,6 @@ def evaluate(
         ``voi_merge``, ``ari``, and pairwise ``precision``, ``recall``, ``f1``.
     """
     device = next(model.parameters()).device
-    identity = Normalizer(center=torch.zeros(3, device=device), scale=1.0)
     n = len(dataset) if limit is None else min(limit, len(dataset))
     sums = {t: {} for t in thresholds}
     pair_counts = {t: torch.zeros(3) for t in thresholds}  # tp, fp, fn
@@ -47,7 +45,7 @@ def evaluate(
         item = dataset[i]
         pc, mask, gt = item["pc"].to(device), item["mask"].to(device), item["labels"][item["mask"]]
         valid = pc[mask]
-        enc = EncodedCloud(model, model.encode(pc[None], mask[None]), identity, valid, mask.nonzero()[:, 0])
+        enc = EncodedCloud(model, model.encode(pc[None], mask[None]), valid, mask.nonzero()[:, 0])
         A = enc.affinity(valid, chunk_size=chunk_size).cpu()
         gt_same = gt[:, None] == gt[None, :]
         if item.get("dust_label") is not None:

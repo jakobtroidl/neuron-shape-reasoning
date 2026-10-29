@@ -31,6 +31,8 @@ pat convert hemibrain_final.pth ckpt/hemibrain/model
 ```
 
 or let `pat.load_pretrained("hemibrain")` download (needs `gdown`) and convert it into `~/.cache/pat/hemibrain`.
+`pat` does not normalize inputs. The paper models expect coordinates in µm divided by the scale in the table
+(659.88367), arranged like the training merges (see `examples/quickstart.ipynb`).
 Paper evaluation on the fixed test items:
 
 ```bash

@@ -23,7 +23,7 @@ class DataConfig:
     cache_dir: Optional[str] = None  # cache parsed skeletons as .pt files
     features: list = field(default_factory=list)  # SWC node columns used as point features, e.g. [radius]
     units: str = "um"
-    scale: float = 659.88367
+    scale: float = 1.0  # coordinates (in `units`) are divided by this; the paper used 659.88367
     samples_per_neuron: int = 1024
     max_neurons_merged: int = 4
     n_dust_neurons: int = 6

@@ -29,21 +29,22 @@ def test_padding_is_ignored(tiny_model):
 
 
 def test_chunking_does_not_change_affinity(tiny_model):
-    pts = torch.randn(60, 3) * 30
-    enc = pat.encode(tiny_model, pts, scale=100.0)
+    pts = torch.randn(60, 3) * 0.3
+    enc = pat.encode(tiny_model, pts)
     full = enc.affinity(chunk_size=10**6)
     torch.testing.assert_close(enc.affinity(chunk_size=7), full)
-    q, k = torch.randn(5, 3) * 30, torch.randn(9, 3) * 30
+    q, k = torch.randn(5, 3) * 0.3, torch.randn(9, 3) * 0.3
     rect = enc.affinity(q, k, chunk_size=4)
     assert rect.shape == (5, 9)
     pairs = torch.stack([q[:, None].expand(5, 9, 3), k[None].expand(5, 9, 3)], dim=2).reshape(-1, 2, 3)
     torch.testing.assert_close(enc.pair_affinity(pairs, chunk_size=3), rect.reshape(-1))
 
 
-def test_queries_use_cloud_normalizer(tiny_model):
-    pts = torch.randn(30, 3) * 30 + 500
-    enc = pat.encode(tiny_model, pts, scale=100.0)
-    torch.testing.assert_close(enc.normalizer.center, pts.mean(0))
+def test_coordinates_are_used_as_given(tiny_model):
+    pts = torch.randn(30, 3) * 0.3 + 0.5
+    enc = pat.encode(tiny_model, pts)
+    torch.testing.assert_close(enc.points, pts)
+    torch.testing.assert_close(enc.latents, tiny_model.encode(pts[None]))
     # Querying the encoded points by coordinate equals the default query set.
     torch.testing.assert_close(enc.affinity(pts), enc.affinity())
 

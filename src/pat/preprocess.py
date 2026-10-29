@@ -1,19 +1,17 @@
-"""Coordinate normalization, padding and subsampling.
+"""Input validation, padding and subsampling.
 
 Points are arrays of shape ``(N, 3 + F)``: xyz coordinates followed by ``F``
-optional per-point features. Only the coordinates are normalized; features
-are passed through unchanged.
+optional per-point features. ``pat`` never rescales or re-centers them;
+normalize your data yourself, the same way for training and inference.
 """
 
 from __future__ import annotations
-
-from dataclasses import dataclass
 
 import numpy as np
 import torch
 
 PAD_VALUE = -1.0
-"""Coordinate (after normalization) used for padding points, as in training."""
+"""Coordinate value of padding points. Padding is masked, so the value does not matter."""
 
 
 def as_points(points, device=None, dim: int | None = None) -> torch.Tensor:
@@ -33,43 +31,6 @@ def as_points(points, device=None, dim: int | None = None) -> torch.Tensor:
             f"Expected {dim} columns (xyz + {dim - 3} features), got {t.shape[-1]}"
         )
     return t
-
-
-@dataclass
-class Normalizer:
-    """Maps physical coordinates (µm) to the model's normalized space.
-
-    ``xyz_normalized = (xyz - center) / scale``; feature columns are unchanged.
-    Fit it on the encoded cloud and apply the same instance to every query
-    point, so queries and cloud share a coordinate frame.
-    """
-
-    center: torch.Tensor
-    scale: float
-
-    @classmethod
-    def fit(cls, points, scale: float, center: bool = True) -> Normalizer:
-        """Create a normalizer centered on the mean coordinate of ``points``.
-
-        With ``center=False`` the points are only scaled.
-        """
-        points = as_points(points)
-        c = points[:, :3].mean(0) if center else torch.zeros(3)
-        return cls(center=c, scale=float(scale))
-
-    def __call__(self, points) -> torch.Tensor:
-        points = as_points(points, device=self.center.device)
-        out = points.clone()
-        out[:, :3] = (points[:, :3] - self.center) / self.scale
-        return out
-
-    def inverse(self, points: torch.Tensor) -> torch.Tensor:
-        out = points.clone()
-        out[..., :3] = points[..., :3] * self.scale + self.center.to(points.device)
-        return out
-
-    def to(self, device) -> Normalizer:
-        return Normalizer(center=self.center.to(device), scale=self.scale)
 
 
 def subsample(points: torch.Tensor, n: int, generator: torch.Generator | None = None):

@@ -18,6 +18,7 @@ import pat
 from pat.io import read_swcs
 
 points, gt = read_swcs(["a.swc", "b.swc"])          # (N, 3) coordinates in µm
+points = points / 659.88                            # your normalization: the same as for the training data
 model = pat.load_pretrained("my_model", device="cuda")  # directory from pat train or pat.save_pretrained
 
 seg = pat.segment(model, points, threshold=0.8)     # one label per point, -1 = noise
@@ -42,7 +43,7 @@ features = torch.randn(B, N, D)                # D features per point
 labels = torch.randint(0, 3, (B, N))           # neuron id of every point (training targets)
 pc = torch.cat([xyz, features], dim=-1)        # (B, N, 3 + D)
 
-model = pat.create_model("ae_d256_m64", depth=4, feature_dim=D, scale=1.0)
+model = pat.create_model("ae_d256_m64", depth=4, feature_dim=D)
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
 
 # Training: sample random point pairs, target = 1 if both lie on the same neuron
@@ -65,11 +66,13 @@ with torch.no_grad():
     latents = model.encode(pc)                             # (B, num_latents, dim), once per cloud
     affinity = model.decode(latents, pc[:, :5], pc[:, 5:10])  # (B, 5): any query pairs, with features
 
-seg = pat.segment(model, pc[0], center=False)  # cluster one cloud: labels (N,), -1 = noise
+seg = pat.segment(model, pc[0])                # cluster one cloud: labels (N,), -1 = noise
 pat.save_pretrained(model, "my_model")         # reload with pat.load_pretrained("my_model")
 ```
 
-Clouds of different sizes can be padded with `pat.preprocess.pad_batch`, which returns the `mask` to pass instead of
+`pat` never rescales or re-centers coordinates: normalize your data yourself and use the same normalization for
+training and inference. Coordinates should lie within roughly [-1, 1]: the lowest frequency of the Fourier point
+embedding has period 2, so larger values wrap around and become ambiguous. Clouds of different sizes can be padded with `pat.preprocess.pad_batch`, which returns the `mask` to pass instead of
 `None`. A trained 3D model can be extended to `D` features with `pat.expand_features(model, D)` and then fine-tuned
 the same way. To train from SWC files, run `pat train config.yaml` (examples in [`research/configs`](research/configs)),
 optionally with `data.features: [radius]` or, from Python, `pat.train.train(cfg, feature_fn=...)`.

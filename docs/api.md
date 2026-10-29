@@ -21,7 +21,6 @@
 
 ## Preprocessing
 
-::: pat.Normalizer
 ::: pat.preprocess.pad_batch
 ::: pat.preprocess.subsample
 ::: pat.preprocess.as_points

@@ -1,4 +1,8 @@
-"""High-level inference: encode a cloud once, then query affinities anywhere."""
+"""High-level inference: encode a cloud once, then query affinities anywhere.
+
+Coordinates are used exactly as given. Normalize them yourself, the same way
+for training and inference.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +12,7 @@ import torch
 
 from .cluster import NOISE, cluster_affinity
 from .model import PointAffinityTransformer
-from .preprocess import Normalizer, as_points, subsample
+from .preprocess import as_points, subsample
 
 DEFAULT_CHUNK_SIZE = 16384
 
@@ -18,22 +22,19 @@ class EncodedCloud:
     """A point cloud encoded by PAT. Query it with arbitrary points.
 
     Create it with [`pat.encode`][pat.encode]. Queries are given like the encoded
-    cloud: ``(Q, 3 + F)`` with coordinates in the same physical units, followed
-    by the same ``F`` feature columns. Their coordinates are normalized with the
-    cloud's `normalizer`.
+    cloud: ``(Q, 3 + F)``, coordinates in the same frame followed by the same
+    ``F`` feature columns.
 
     Attributes:
         model: The model that produced the latents.
         latents: Latent vectors, shape ``(1, num_latents, dim)``.
-        normalizer: Maps physical coordinates into the model frame.
-        points: The (possibly subsampled) points that were encoded, physical units,
-            including feature columns.
+        points: The (possibly subsampled) points that were encoded, including
+            feature columns.
         index: Indices of `points` in the cloud passed to `encode`.
     """
 
     model: PointAffinityTransformer
     latents: torch.Tensor
-    normalizer: Normalizer
     points: torch.Tensor
     index: torch.Tensor
 
@@ -42,8 +43,7 @@ class EncodedCloud:
         return self.latents.device
 
     def _embed(self, queries) -> torch.Tensor:
-        q = self.normalizer(as_points(queries, device=self.device, dim=self.model.in_dim))
-        return self.model.point_embed(q)
+        return self.model.point_embed(as_points(queries, device=self.device, dim=self.model.in_dim))
 
     @torch.no_grad()
     def pair_affinity(self, qa, qb=None, *, chunk_size: int = DEFAULT_CHUNK_SIZE) -> torch.Tensor:
@@ -99,8 +99,6 @@ def encode(
     model: PointAffinityTransformer,
     points,
     *,
-    scale: float | None = None,
-    center: bool = True,
     max_points: int | None = None,
     generator: torch.Generator | None = None,
 ) -> EncodedCloud:
@@ -108,10 +106,8 @@ def encode(
 
     Args:
         model: A PAT model, e.g. from [`load_pretrained`][pat.load_pretrained].
-        points: Coordinates ``(N, 3)`` in µm, followed by the model's
-            ``F = model.config.feature_dim`` feature columns if it has any.
-        scale: Global scale factor; defaults to ``model.config.scale``.
-        center: Subtract the cloud's centroid before scaling.
+        points: Coordinates ``(N, 3)``, normalized like the training data, followed
+            by the model's ``F = model.config.feature_dim`` feature columns if any.
         max_points: Clouds larger than this are randomly subsampled before
             encoding. Defaults to ``model.config.num_points``.
         generator: Random generator for subsampling.
@@ -121,9 +117,9 @@ def encode(
     max_points = max_points or model.config.num_points
     encoded, index = subsample(points, max_points, generator=generator)
 
-    normalizer = Normalizer.fit(encoded, scale or model.config.scale, center=center).to(device)
-    latents = model.encode(normalizer(encoded)[None])
-    return EncodedCloud(model, latents, normalizer, encoded.to(device), index.to(device))
+    encoded = encoded.to(device)
+    latents = model.encode(encoded[None])
+    return EncodedCloud(model, latents, encoded, index.to(device))
 
 
 @dataclass
@@ -132,7 +128,7 @@ class Segmentation:
 
     Attributes:
         labels: Neuron label per query point, ``-1`` for noise. Shape ``(Q,)``.
-        queries: The query points, physical units, including feature columns.
+        queries: The query points, including feature columns.
         anchors: Indices of the queries that were clustered directly.
         affinity: Affinity matrix between the anchors.
     """
@@ -175,7 +171,7 @@ def segment(
 
     Args:
         model: A PAT model.
-        points: Cloud to encode, ``(N, 3 + F)``: coordinates in µm, then features.
+        points: Cloud to encode, ``(N, 3 + F)``: coordinates, then features.
         queries: Points to label, ``(Q, 3 + F)``. Defaults to ``points``.
         threshold: Distance threshold, see [`cluster_affinity`][pat.cluster.cluster_affinity].
         min_cluster_size: Minimum anchors per neuron.

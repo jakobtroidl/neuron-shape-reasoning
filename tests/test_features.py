@@ -4,7 +4,7 @@ import pytest
 import torch
 
 import pat
-from pat.preprocess import Normalizer, pad_batch
+from pat.preprocess import pad_batch
 
 
 @pytest.fixture
@@ -29,24 +29,18 @@ def test_features_change_the_output(feature_model):
     assert not torch.allclose(feature_model.encode(pc), feature_model.encode(other))
 
 
-def test_normalizer_and_padding_only_touch_xyz():
-    pts = torch.cat([torch.randn(10, 3) * 50 + 100, torch.arange(20.0).view(10, 2)], dim=1)
-    norm = Normalizer.fit(pts, scale=10.0)
-    out = norm(pts)
-    torch.testing.assert_close(out[:, 3:], pts[:, 3:])
-    torch.testing.assert_close(out[:, :3].mean(0), torch.zeros(3), atol=1e-5, rtol=0)
-    torch.testing.assert_close(norm.inverse(out), pts)
-
+def test_padding_with_features():
+    out = torch.cat([torch.randn(10, 3), torch.arange(20.0).view(10, 2)], dim=1)
     pc, mask = pad_batch([out, out[:4]])
     assert pc.shape == (2, 10, 5) and mask[1].sum() == 4
     assert (pc[1, 4:, :3] == -1).all() and (pc[1, 4:, 3:] == 0).all()
 
 
 def test_high_level_api_with_ids(feature_model):
-    xyz = torch.randn(200, 3) * 20
+    xyz = torch.randn(200, 3) * 0.2
     ids = torch.randint(0, 3, (200, 1)).float()
     points = torch.cat([xyz, ids, ids * 2], dim=1)
-    enc = pat.encode(feature_model, points, scale=100.0)
+    enc = pat.encode(feature_model, points)
     assert enc.affinity().shape == (200, 200)
     assert enc.affinity(points[:5], points[5:9]).shape == (5, 4)
     with pytest.raises(ValueError, match="5 columns"):

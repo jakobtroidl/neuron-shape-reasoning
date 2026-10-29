@@ -68,8 +68,10 @@ def _load_dir(path: Path, device) -> PointAffinityTransformer:
 def load_legacy_checkpoint(path, *, preset: str | None = None, **overrides) -> PointAffinityTransformer:
     """Load a ``.pth`` checkpoint written by the original research code.
 
-    Architecture and scale factor are read from the checkpoint's stored
-    arguments unless given explicitly. Loading uses ``weights_only=True``.
+    The architecture is read from the checkpoint's stored arguments unless
+    given explicitly. The research code divided coordinates (µm) by
+    ``data_global_scale_factor`` (659.88367 for the paper models); apply the
+    same scaling to your inputs. Loading uses ``weights_only=True``.
     """
     if hasattr(torch.serialization, "add_safe_globals"):
         torch.serialization.add_safe_globals([argparse.Namespace])
@@ -81,7 +83,7 @@ def load_legacy_checkpoint(path, *, preset: str | None = None, **overrides) -> P
     preset = preset or args.get("model", "ae_d1024_m512")
     if preset not in PRESETS:
         raise KeyError(f"Checkpoint uses unknown model {preset!r}")
-    fields = {"depth": args.get("depth", 24), "scale": args.get("data_global_scale_factor", 1.0)}
+    fields = {"depth": args.get("depth", 24)}
     config = preset_config(preset, **{**fields, **overrides})
 
     model = PointAffinityTransformer(config)

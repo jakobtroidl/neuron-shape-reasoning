@@ -20,7 +20,7 @@ def test_convert_legacy_checkpoint(tmp_path):
 
     out = pat.convert_legacy_checkpoint(tmp_path / "old.pth", tmp_path / "new")
     loaded = pat.load_pretrained(out)
-    assert loaded.config.dim == 64 and loaded.config.depth == 2 and loaded.config.scale == 123.0
+    assert loaded.config.dim == 64 and loaded.config.depth == 2 and loaded.config.num_latents == 64
     torch.testing.assert_close(loaded.state_dict()["mlp.fc.2.weight"], model.state_dict()["mlp.fc.2.weight"])
     # Legacy files can also be loaded directly.
-    assert pat.load_pretrained(tmp_path / "old.pth").config.scale == 123.0
+    assert pat.load_pretrained(tmp_path / "old.pth").config.depth == 2

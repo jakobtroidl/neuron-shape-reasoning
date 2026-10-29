@@ -60,14 +60,13 @@ def _setup_distributed():
 
 def build_model(cfg: TrainConfig, cloud_size: int, feature_dim: int = 0):
     """Create the model to train, or load ``cfg.init`` and adapt it to ``feature_dim``."""
-    overrides = {"scale": cfg.data.scale, "num_points": cloud_size}
     if cfg.init:
         model = load_pretrained(cfg.init)
         if model.config.feature_dim != feature_dim:
             model = expand_features(model, feature_dim)
-        model.config.scale, model.config.num_points = cfg.data.scale, cloud_size
+        model.config.num_points = cloud_size
         return model
-    return create_model(cfg.model, depth=cfg.depth, feature_dim=feature_dim, **overrides)
+    return create_model(cfg.model, depth=cfg.depth, feature_dim=feature_dim, num_points=cloud_size)
 
 
 def train_one_epoch(model, loader, optimizer, epoch, cfg: TrainConfig, device, logger: Logger, step: int):
