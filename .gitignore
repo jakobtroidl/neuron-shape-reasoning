@@ -10,3 +10,10 @@ output.log
 *.log
 misc/*
 data/*
+site/
+*.egg-info/
+.pytest_cache/
+ckpt/
+dist/
+.ipynb_checkpoints/
+.cache/
