@@ -70,9 +70,7 @@ seg = pat.segment(model, pc[0])                # cluster one cloud: labels (N,),
 pat.save_pretrained(model, "my_model")         # reload with pat.load_pretrained("my_model")
 ```
 
-`pat` never rescales or re-centers coordinates: normalize your data yourself and use the same normalization for
-training and inference. Coordinates should lie within roughly [-1, 1]: the lowest frequency of the Fourier point
-embedding has period 2, so larger values wrap around and become ambiguous. Clouds of different sizes can be padded with `pat.preprocess.pad_batch`, which returns the `mask` to pass instead of
+Coordinates should lie within roughly [-1, 1]. Clouds of different sizes can be padded with `pat.preprocess.pad_batch`, which returns the `mask` to pass instead of
 `None`. A trained 3D model can be extended to `D` features with `pat.expand_features(model, D)` and then fine-tuned
 the same way. To train from SWC files, run `pat train config.yaml` (examples in [`research/configs`](research/configs)),
 optionally with `data.features: [radius]` or, from Python, `pat.train.train(cfg, feature_fn=...)`.
