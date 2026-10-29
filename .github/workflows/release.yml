@@ -1,0 +1,22 @@
+name: Release
+
+# Publishes to PyPI when a version tag (v*) is pushed. Uses PyPI trusted publishing:
+# configure the project on pypi.org to trust this repository and workflow first.
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,0 +1,21 @@
+# Paper setting for Hemibrain (replaces research/legacy/scripts/hemibrain/train_topology.sh)
+model: ae_d1024_m512
+depth: 24
+output_dir: ./ckpt/hemibrain
+num_workers: 16
+save_every: 2
+data:
+  swc_dir: ./data/hemibrain_v1.2/swc
+  neuron_ids: ./data/hemibrain_v1.2/affinity/train.csv
+  eval_neuron_ids: ./data/hemibrain_v1.2/affinity/test.csv
+  scale: 659.88367
+  samples_per_neuron: 1024
+  max_neurons_merged: 4
+  translate: 60.0
+  query_mode: {input: 1.0}
+optim:
+  lr: 1.0e-4
+  epochs: 1000
+  warmup_epochs: 5
+  batch_size: 230   # per process in the original 8xH100 DataParallel run; divide by GPUs under torchrun
+  accum_iter: 2

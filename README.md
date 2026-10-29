@@ -15,99 +15,63 @@ https://github.com/user-attachments/assets/f28ef445-87d7-4427-a7ce-0ae0ac0bf7e6
 
 
 ### Installation
+```bash
+pip install point-affinity-transformer                        # core: torch, numpy, scikit-learn, safetensors
+pip install "point-affinity-transformer[swc,pretrained]"      # + SWC reading and paper checkpoints
+pip install "point-affinity-transformer[train]"               # + training and evaluation
 ```
-conda create --name gnsr python=3.9
-conda activate gnsr
-pip install torch==2.2.2 torchvision==0.17.2 torchaudio==2.2.2 --index-url https://download.pytorch.org/whl/cu121
-pip install torch_geometric # more details here https://pytorch-geometric.readthedocs.io/en/2.5.2/notes/installation.html
-pip install -r requirements.txt
-```
-
-
-<details>
-  <summary>Troubleshooting & Versions!</summary>
-
-  All code was tested using PyTorch version 2.1.0 and Cuda version 12.1. <br>
-  ```
-  pip install torch==2.1.0 torchvision==0.16.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu121
-  ```
-</details>
-
-### Data Access
-View download instructions for data and model checkpoints [here](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/970d25cfb496f8bbbba62ba68eb087601db2f6b6/data/README.md).
+The package is imported as `pat`. Install a PyTorch build matching your CUDA version first ([pytorch.org](https://pytorch.org/get-started/locally/)).
 
 ### Getting Started
 
-Training a Point Affinity Transformer Model on the FlyWire dataset:
+```python
+import pat
+from pat.io import read_swcs
 
-```bash
-python train_affinity.py \
-    --data_path ./data/flywire_full_v783/train \
-    --neuron_id_path ./data/flywire_full_v783/affinity/ol_family_balanced/affinity_train.csv \
-    --fam_to_id_mapping ./data/flywire_full_v783/types/visual_neurons_family_to_id.json \
-    --output_dir ./ckpt/flywire_affinity_train \
-    --log_dir ./logs/flywire_affinity_train \
-    --point_cloud_size 1024 \
-    --data_global_scale_factor 659.88367 \
-    --lr 1e-4 \
+points, gt = read_swcs(["a.swc", "b.swc"])          # (N, 3) coordinates in µm
+model = pat.load_pretrained("hemibrain", device="cuda")
+
+seg = pat.segment(model, points, threshold=0.8)     # one label per point, -1 = noise
+print(seg.num_neurons, pat.metrics.voi(seg.labels, gt))
+
+enc = pat.encode(model, points)                     # encode once ...
+A = enc.affinity(queries, others)                   # ... then query affinities between any points
 ```
 
-Testing a Pretrained Affinity Model on the FlyWire dataset:
+See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example, and the documentation
+(`pip install -e ".[docs]" && mkdocs serve`) for concepts, training and the API reference.
+
+### Data and Checkpoints
+Download instructions for the FlyWire, Hemibrain and MANC data are [here](research/data/README.md).
+`pat.load_pretrained("flywire" | "hemibrain" | "manc")` downloads and caches the paper checkpoints automatically.
+
+### Training and Evaluation
 
 ```bash
-python eval_affinity.py \
-    --pth ./path/to/flywire_final.pth \
-    --data_path ./data/flywire_full_v783/train \
-    --neuron_id_path .data/flywire_full_v783/affinity/opticlobe_family/affinity_test_paper.csv \
-    --output_dir ./ckpt/flywire_affinity_eval \
-    --fam_to_id_mapping ./data/flywire_full_v783/types/visual_neurons_family_to_id.json \
-    --point_cloud_size 1024 \
-    --batch_size 1 \
-    --data_global_scale_factor 659.88367 \
-    --thresholds 0.8 \
-    --store_tensors \
-    --qual_results
+pat train research/configs/flywire.yaml                                              # single GPU
+torchrun --standalone --nproc_per_node 8 -m pat train research/configs/flywire.yaml  # multi-GPU
+pat eval research/configs/hemibrain.yaml --model hemibrain --thresholds 0.7,0.8,0.9
+```
+
+Configs for all three datasets are in [`research/configs`](research/configs). Override entries with
+`--set key=value`, e.g. `--set data.query_mode="{input_valid: 1, skeleton: 1}"` to train on query points beyond the input cloud.
+
+### Repository Structure
+```
+src/pat/          pip package: model, inference, clustering, metrics, training (pat.train)
+docs/             documentation (MkDocs)
+examples/         quickstart notebook
+tests/            pytest suite
+research/
+  configs/        paper training configs for FlyWire, Hemibrain, MANC
+  lsf/            cluster launch scripts
+  legacy/         original research code (incl. contrastive DeepSet embeddings)
+  notebooks/      analysis notebooks
 ```
 
 ### Contrastive Neuron Embeddings
 
-Training and test embeddings are available in the `embeddings` folder [here](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing). Check out [this notebook](https://github.com/jakobtroidl/neuron-shape-reasoning/blob/main/notebooks/confusion_matrix.ipynb) to generate neuron-type classification confusion matrices. If you want to train a deepset to produce contrastive neuron embeddings on the FlyWire dataset:
-
-```bash
-python train_contrastive.py \
-    --model ae_d1024_m512 \
-    --pth ./data/ckpt/flywire_affinity_final.pth \
-    --data_path ./data/flywire_full_v783/train \
-    --neuron_id_path ./data/flywire_full_v783/affinity/ol_family_balanced/affinity_train_metric_balanced.csv \
-    --output_dir ./ckpt/flywire_deepset_train_normed \
-    --fam_to_id_mapping ./data/flywire_full_v783/types/visual_neurons_family_to_id.json \
-    --point_cloud_size 1024 \
-    --batch_size 650 \
-    --data_global_scale_factor 659.88367 \
-    --depth 24 \
-    --norm_emb
-```
-
-Test pretrained Deepset model on the FlyWire dataset:
-
-```bash
-python eval_contrastive.py \
-    --model ae_d1024_m512 \
-    --encoder_pth ./data/ckpt/flywire_affinity_final.pth \
-    --deep_set_pth ./data/ckpt/flywire_deepset_final.pth \
-    --data_path ./data/flywire_full_v783/train \
-    --neuron_id_path ./data/flywire_full_v783/affinity/ol_family_balanced/affinity_test.csv \
-    --output_dir ./ckpt/flywire_deepset_eval \
-    --train_emb_path ./ckpt/flywire_deepset_train_normed/emb_ep_XXXX/ \
-    --fam_to_id_mapping ./data/flywire_full_v783/types/visual_neurons_family_to_id.json \
-    --point_cloud_size 1024 \
-    --batch_size 650 \
-    --data_global_scale_factor 659.88367 \
-    --depth 24 \
-    --norm_emb
-```
-
-
+Training and test embeddings are available in the `embeddings` folder [here](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing). Check out [this notebook](research/notebooks/confusion_matrix.ipynb) to generate neuron-type classification confusion matrices. The contrastive DeepSet code has not been ported to the package yet; it lives in [`research/legacy`](research/legacy) and runs from that directory, e.g. `cd research/legacy && python train_contrastive.py ...` with the arguments listed in its argparse help.
 
 ### Citation
 ```bibtex
@@ -128,5 +92,5 @@ We acknowledge NSF grants CRCNS-2309041, NCS-FO-2124179, and NIH grant R01HD1049
 Please open an issue or contact Jakob Troidl (troidlj@janelia.hhmi.org) for any questions or feedback.
 
 ### Known Issues
-In all datasets the `train` folder contains all data files (train + test). The actual train and test split is defined in the file given through the `--neuron_id_path` argument.
+In all datasets the `train` folder contains all data files (train + test). The actual train and test split is defined by the neuron id CSV (`data.neuron_ids` / `data.eval_neuron_ids` in the configs).
 

@@ -1,0 +1,54 @@
+site_name: Point Affinity Transformer
+site_description: Global neuron shape reasoning with Point Affinity Transformers
+repo_url: https://github.com/jakobtroidl/neuron-shape-reasoning
+repo_name: neuron-shape-reasoning
+
+theme:
+  name: material
+  features:
+    - content.code.copy
+    - navigation.sections
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle: {icon: material/brightness-7, name: Dark mode}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle: {icon: material/brightness-4, name: Light mode}
+
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quickstart notebook: examples/quickstart.ipynb
+  - Concepts: concepts.md
+  - Querying affinities: queries.md
+  - Training: training.md
+  - Pretrained models: pretrained.md
+  - API reference: api.md
+  - Citation: citation.md
+
+plugins:
+  - search
+  - mkdocs-jupyter:
+      execute: false
+      include_source: true
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            docstring_options:
+              warn_missing_types: false
+            show_source: false
+            show_root_heading: true
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.arithmatex: {generic: true}
+  - toc: {permalink: true}
