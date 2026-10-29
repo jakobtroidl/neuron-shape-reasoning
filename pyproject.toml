@@ -32,7 +32,9 @@ dependencies = [
 pretrained = ["gdown>=5"]
 wandb = ["wandb"]
 docs = ["mkdocs-material>=9", "mkdocstrings[python]>=0.24", "mkdocs-jupyter>=0.24"]
-dev = ["pytest", "ruff", "timm", "einops", "python-voi"]  # the last three for comparing against research/legacy
+# timm, einops and python-voi are for comparing against research/legacy;
+# python-voi 0.0.3 ships an empty wheel, so pin 0.0.2.
+dev = ["pytest", "ruff", "timm", "einops", "python-voi==0.0.2"]
 
 [project.scripts]
 pat = "pat.cli:main"
