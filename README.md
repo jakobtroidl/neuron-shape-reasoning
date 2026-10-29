@@ -2,16 +2,7 @@
 [![Data](https://img.shields.io/badge/data-gdrive-red.svg?colorB=f25100)](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing)
 [![Models](https://img.shields.io/badge/models-gdrive-purple.svg?colorB=C46CFD)](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing)
 
-## Global Neuron Shape Reasoning with Point Affinity Transformers
-This repository contains the official implementation of the paper "[Global Neuron Shape Reasoning with Point Affinity Transformers](https://www.biorxiv.org/content/10.1101/2024.11.24.625067v1)" by 
-[Jakob Troidl](https://jakobtroidl.github.io/), 
-[Johannes Knittel](https://www.knittel.ai/), 
-[Wanhua Li](https://li-wanhua.github.io/), 
-[Fangneng Zhan](https://fnzhan.com/), 
-[Hanspeter Pfister*](https://vcg.seas.harvard.edu/people), 
-and [Srinivas Turaga*](https://www.janelia.org/people/srinivas-turaga) (*equal advising). 
-
-https://github.com/user-attachments/assets/f28ef445-87d7-4427-a7ce-0ae0ac0bf7e6
+## Point Affinity Transformers
 
 
 ### Installation
@@ -38,9 +29,54 @@ enc = pat.encode(model, points)                     # encode once ...
 A = enc.affinity(queries, others)                   # ... then query affinities between any points
 ```
 
-Points can carry extra per-point features after xyz (shape `(N, 3 + F)`, e.g. an ID or the radius): create a model with
-`feature_dim=F`, or extend a pretrained 3D model with `pat.expand_features(model, F)` and fine-tune it
-(`data.features: [radius]` or `train(cfg, feature_fn=...)`).
+### Minimal Example: Your Own Point Clouds and Features
+
+Point clouds of shape `(B, N, 3)` with `D` extra features per point (e.g. an ID) are passed to the model as
+`(B, N, 3 + D)`: xyz first, then the features. Training only needs a neuron label per point. The model learns to
+predict whether two query points belong to the same neuron.
+
+```python
+import torch
+import torch.nn.functional as F
+import pat
+
+B, N, D = 8, 1024, 4                           # random toy data: replace with your own
+xyz = torch.rand(B, N, 3) * 2 - 1              # coordinates, already normalized to roughly [-1, 1]
+features = torch.randn(B, N, D)                # D features per point
+labels = torch.randint(0, 3, (B, N))           # neuron id of every point (training targets)
+pc = torch.cat([xyz, features], dim=-1)        # (B, N, 3 + D)
+
+model = pat.create_model("ae_d256_m64", depth=4, feature_dim=D, scale=1.0)
+optimizer = torch.optim.AdamW(model.parameters(), lr=1e-4)
+
+# Training: sample random point pairs, target = 1 if both lie on the same neuron
+def gather(x, idx):                            # x: (B, N, C), idx: (B, Q) -> (B, Q, C)
+    return x.gather(1, idx[..., None].expand(-1, -1, x.shape[-1]))
+
+model.train()
+for step in range(100):
+    i, j = torch.randint(0, N, (2, B, 2048))   # 2048 query pairs per cloud
+    target = (labels.gather(1, i) == labels.gather(1, j)).float()
+    logits = model(pc, None, gather(pc, i), gather(pc, j), logits=True)  # mask=None: no padding
+    loss = F.binary_cross_entropy_with_logits(logits, target)
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+
+# Inference
+model.eval()
+with torch.no_grad():
+    latents = model.encode(pc)                             # (B, num_latents, dim), once per cloud
+    affinity = model.decode(latents, pc[:, :5], pc[:, 5:10])  # (B, 5): any query pairs, with features
+
+seg = pat.segment(model, pc[0], center=False)  # cluster one cloud: labels (N,), -1 = noise
+pat.save_pretrained(model, "my_model")         # reload with pat.load_pretrained("my_model")
+```
+
+Clouds of different sizes can be padded with `pat.preprocess.pad_batch`, which returns the `mask` to pass instead of
+`None`. A pretrained 3D model can be extended to `D` features with `pat.expand_features(model, D)` and then fine-tuned
+the same way. Training from SWC files (`pat train`, with `data.features: [radius]` or `train(cfg, feature_fn=...)`)
+is described below.
 
 See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example, and the documentation
 (`pip install -e ".[docs]" && mkdocs serve`) for concepts, training and the API reference.
@@ -60,23 +96,6 @@ pat eval research/configs/hemibrain.yaml --model hemibrain --thresholds 0.7,0.8,
 Configs for all three datasets are in [`research/configs`](research/configs). Override entries with
 `--set key=value`, e.g. `--set data.query_mode="{input_valid: 1, skeleton: 1}"` to train on query points beyond the input cloud.
 
-### Repository Structure
-```
-src/pat/          pip package: model, inference, clustering, metrics, training (pat.train)
-docs/             documentation (MkDocs)
-examples/         quickstart notebook
-tests/            pytest suite
-research/
-  configs/        paper training configs for FlyWire, Hemibrain, MANC
-  lsf/            cluster launch scripts
-  legacy/         original research code (incl. contrastive DeepSet embeddings)
-  notebooks/      analysis notebooks
-```
-
-### Contrastive Neuron Embeddings
-
-Training and test embeddings are available in the `embeddings` folder [here](https://drive.google.com/drive/folders/1vgPSYsqDJyhv1s9aD09GgXqAeGm0Rb1V?usp=sharing). Check out [this notebook](research/notebooks/confusion_matrix.ipynb) to generate neuron-type classification confusion matrices. The contrastive DeepSet code has not been ported to the package yet; it lives in [`research/legacy`](research/legacy) and runs from that directory, e.g. `cd research/legacy && python train_contrastive.py ...` with the arguments listed in its argparse help.
-
 ### Citation
 ```bibtex
 @techreport{troidlgnsr2024,
@@ -90,11 +109,5 @@ Training and test embeddings are available in the `embeddings` folder [here](htt
 ```
 
 ### Acknowledgements
-We acknowledge NSF grants CRCNS-2309041, NCS-FO-2124179, and NIH grant R01HD104969. We also thank the HHMI Janelia Visiting Scientist Program and the Harvard Data Science Initiative Postdoctoral Fellowship for their support. The code is partially based on [3DShape2VecSet](https://arxiv.org/abs/2301.11445) by Zhang et. al. 
-
-### Contact
-Please open an issue or contact Jakob Troidl (troidlj@janelia.hhmi.org) for any questions or feedback.
-
-### Known Issues
-In all datasets the `train` folder contains all data files (train + test). The actual train and test split is defined by the neuron id CSV (`data.neuron_ids` / `data.eval_neuron_ids` in the configs).
+We acknowledge NSF grants CRCNS-2309041, NCS-FO-2124179, and NIH grant R01HD104969. We also thank the HHMI Janelia Visiting Scientist Program and the Harvard Data Science Initiative Postdoctoral Fellowship for their support. The code is partially based on [3DShape2VecSet](https://arxiv.org/abs/2301.11445) by Zhang et. al.
 
