@@ -90,11 +90,9 @@ for the default `depth=24`; the number of latents changes them by at most 1.4%.
 | 1024 | 380M | 64, 256, 512, 1024 |
 | 2048 | 1.4B | 64, 256, 512, 1024 |
 
-The paper models use `ae_d1024_m512` (the default). Other settings, such as `depth`, can be passed as keyword
-arguments, e.g. `pat.create_model("ae_d256_m64", depth=4)`.
+`ae_d1024_m512` is the default. Other settings, such as `depth`, can be passed as keyword arguments, e.g. `pat.create_model("ae_d256_m64", depth=4)`.
 
-See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example, and the documentation
-(`pip install -e ".[docs]" && mkdocs serve`) for the API reference.
+See the [quickstart notebook](examples/quickstart.ipynb) for an end-to-end example.
 
 ### Citation
 ```bibtex
