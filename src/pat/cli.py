@@ -1,4 +1,4 @@
-"""Command line interface: ``pat train | eval | export | convert``."""
+"""Command line interface: ``pat train | eval | convert``."""
 
 from __future__ import annotations
 
@@ -39,20 +39,13 @@ def _eval(args):
             json.dump(results, f, indent=2)
 
 
-def _export(args):
-    from .pretrained import save_pretrained
-    from .train.checkpoint import model_from_checkpoint
-
-    print(save_pretrained(model_from_checkpoint(args.checkpoint), args.out))
-
-
 def _convert(args):
     import torch
 
-    from .pretrained import convert_legacy_checkpoint
+    from .pretrained import load_legacy_checkpoint, save_pretrained
 
-    dtype = torch.float16 if args.fp16 else None
-    print(convert_legacy_checkpoint(args.checkpoint, args.out, dtype=dtype, preset=args.preset))
+    model = load_legacy_checkpoint(args.checkpoint, preset=args.preset)
+    print(save_pretrained(model, args.out, dtype=torch.float16 if args.fp16 else None))
 
 
 def main(argv=None):
@@ -66,7 +59,7 @@ def main(argv=None):
 
     p = sub.add_parser("eval", help="evaluate segmentation on merged clouds")
     p.add_argument("config", nargs="?", help="YAML config describing the data (not needed with --items)")
-    p.add_argument("--model", required=True, help="model directory (from pat train, pat export or save_pretrained)")
+    p.add_argument("--model", required=True, help="model directory (from pat train or save_pretrained)")
     p.add_argument("--items", help="directory of pre-generated items (pc_*.pt, labels_*.pt, mask_*.pt)")
     p.add_argument("--thresholds", default="0.8")
     p.add_argument("--min-cluster-size", type=int, default=30)
@@ -77,15 +70,10 @@ def main(argv=None):
     p.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE")
     p.set_defaults(func=_eval)
 
-    p = sub.add_parser("export", help="turn a training checkpoint into a model directory")
-    p.add_argument("checkpoint")
-    p.add_argument("out")
-    p.set_defaults(func=_export)
-
     p = sub.add_parser("convert", help="convert a research .pth checkpoint into a model directory")
     p.add_argument("checkpoint")
     p.add_argument("out")
-    p.add_argument("--preset", help="model preset if not stored in the checkpoint")
+    p.add_argument("--preset", help="model preset; overrides the one stored in the checkpoint")
     p.add_argument("--fp16", action="store_true", help="store weights in float16")
     p.set_defaults(func=_convert)
 

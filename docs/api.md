@@ -14,7 +14,6 @@
 ::: pat.PATConfig
 ::: pat.expand_features
 ::: pat.create_model
-::: pat.preset_config
 ::: pat.PRESETS
     options:
       show_root_heading: true

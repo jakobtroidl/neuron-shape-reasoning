@@ -30,7 +30,8 @@ The checkpoints are listed in [data/README.md](data/README.md). They are researc
 pat convert hemibrain_final.pth ckpt/hemibrain/model
 ```
 
-or let `pat.load_pretrained("hemibrain")` download (needs `gdown`) and convert it into `~/.cache/pat/hemibrain`.
+or download and convert it in one step (needs `gdown`) with
+`pat.pretrained.download_paper_checkpoint("hemibrain")`, which returns the model directory (`~/.cache/pat/hemibrain`).
 `pat` does not normalize inputs. The paper models expect coordinates in µm divided by the scale in the table
 (659.88367), arranged like the training merges (see `examples/quickstart.ipynb`).
 Paper evaluation on the fixed test items:

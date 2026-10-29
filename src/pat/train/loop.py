@@ -17,7 +17,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from ..model import expand_features
 from ..presets import create_model
 from ..pretrained import load_pretrained, save_pretrained
-from .checkpoint import load_checkpoint, save_checkpoint
+from .checkpoint import load_training_state, save_checkpoint
 from .config import OptimConfig, TrainConfig
 from .data import MergedNeuronDataset, SkeletonStore, read_root_ids
 
@@ -107,8 +107,10 @@ def train_one_epoch(model, loader, optimizer, epoch, cfg: TrainConfig, device, l
 def train(cfg: TrainConfig, feature_fn=None):
     """Train (or fine-tune) a PAT model as described by ``cfg``.
 
-    Writes training checkpoints to ``{output_dir}/ckpt/`` and the latest model
-    in `save_pretrained` format to ``{output_dir}/model/``.
+    Every ``save_every`` epochs, writes a checkpoint directory
+    ``{output_dir}/ckpt/epoch-{N}`` (model plus optimizer state, see
+    ``resume``) and the latest model to ``{output_dir}/model``. Both load with
+    [`load_pretrained`][pat.load_pretrained].
 
     Args:
         cfg: Training configuration.
@@ -141,10 +143,10 @@ def train(cfg: TrainConfig, feature_fn=None):
 
     start_epoch = 0
     if cfg.resume:
-        ckpt = load_checkpoint(cfg.resume)
-        model.load_state_dict(ckpt["model"])
-        optimizer.load_state_dict(ckpt["optimizer"])
-        start_epoch = ckpt["epoch"] + 1
+        model.load_state_dict(load_pretrained(cfg.resume).state_dict())
+        state = load_training_state(cfg.resume)
+        optimizer.load_state_dict(state["optimizer"])
+        start_epoch = state["epoch"] + 1
 
     raw_model = model
     if world > 1:
@@ -153,8 +155,9 @@ def train(cfg: TrainConfig, feature_fn=None):
     logger = Logger(cfg, enabled=rank == 0)
     if rank == 0:
         n_params = sum(p.numel() for p in raw_model.parameters()) / 1e6
-        print(f"{cfg.model}: {n_params:.1f}M parameters, {feature_dim} point features, {len(dataset)} neurons, "
-              f"{world} process(es), effective batch {cfg.optim.batch_size * cfg.optim.accum_iter * world}")
+        print(f"{cfg.init or cfg.model}: {n_params:.1f}M parameters, {feature_dim} point features, "
+              f"{len(dataset)} neurons, {world} process(es), "
+              f"effective batch {cfg.optim.batch_size * cfg.optim.accum_iter * world}")
 
     step = start_epoch * len(loader)
     for epoch in range(start_epoch, cfg.optim.epochs):
@@ -163,7 +166,7 @@ def train(cfg: TrainConfig, feature_fn=None):
         step = train_one_epoch(model, loader, optimizer, epoch, cfg, device, logger, step)
         last = epoch + 1 == cfg.optim.epochs
         if rank == 0 and (epoch % cfg.save_every == 0 or last):
-            save_checkpoint(out / "ckpt" / f"checkpoint-{epoch}.pt", raw_model, optimizer, epoch, cfg.to_dict())
+            save_checkpoint(out / "ckpt" / f"epoch-{epoch}", raw_model, optimizer, epoch, cfg.to_dict())
             save_pretrained(raw_model, out / "model", epoch=epoch)
 
     if world > 1:

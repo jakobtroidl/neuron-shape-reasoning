@@ -1,4 +1,8 @@
-"""Training checkpoints (model + optimizer state), loadable with ``weights_only=True``."""
+"""Training checkpoints: a model directory plus the optimizer state.
+
+A checkpoint directory loads with [`load_pretrained`][pat.load_pretrained] like
+any saved model, and resumes training with ``resume: <directory>``.
+"""
 
 from __future__ import annotations
 
@@ -6,31 +10,19 @@ from pathlib import Path
 
 import torch
 
-from ..model import PATConfig, PointAffinityTransformer
+from ..model import PointAffinityTransformer
+from ..pretrained import save_pretrained
+
+STATE_NAME = "training_state.pt"
 
 
 def save_checkpoint(path, model: PointAffinityTransformer, optimizer, epoch: int, train_config: dict) -> Path:
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    torch.save(
-        {
-            "model": model.state_dict(),
-            "model_config": model.config.to_dict(),
-            "optimizer": optimizer.state_dict() if optimizer is not None else None,
-            "epoch": epoch,
-            "train_config": train_config,
-        },
-        path,
-    )
+    """Write the model (`save_pretrained` format) and ``training_state.pt`` to directory ``path``."""
+    path = save_pretrained(model, path, epoch=epoch)
+    torch.save({"optimizer": optimizer.state_dict(), "epoch": epoch, "train_config": train_config}, path / STATE_NAME)
     return path
 
 
-def load_checkpoint(path) -> dict:
-    return torch.load(path, map_location="cpu", weights_only=True)
-
-
-def model_from_checkpoint(path) -> PointAffinityTransformer:
-    ckpt = load_checkpoint(path)
-    model = PointAffinityTransformer(PATConfig.from_dict(ckpt["model_config"]))
-    model.load_state_dict(ckpt["model"])
-    return model.eval()
+def load_training_state(path) -> dict:
+    """Optimizer state, epoch and training config of a checkpoint directory."""
+    return torch.load(Path(path) / STATE_NAME, map_location="cpu", weights_only=True)

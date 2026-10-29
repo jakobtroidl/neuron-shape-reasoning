@@ -1,6 +1,8 @@
 import pytest
 import torch
 
+import pat
+
 pytest.importorskip("navis")
 pytest.importorskip("yaml")
 
@@ -48,11 +50,16 @@ def test_train_and_evaluate(swc_dataset, tmp_path):
     cfg.data = small_data_cfg(swc, csv, query_mode={"input_valid": 1.0})
     torch.manual_seed(0)
     model = train(cfg)
+    ckpt = tmp_path / "out" / "ckpt" / "epoch-1"
     assert (tmp_path / "out" / "model" / "model.safetensors").exists()
-    assert (tmp_path / "out" / "ckpt" / "checkpoint-1.pt").exists()
+    assert (ckpt / "training_state.pt").exists()
+    torch.testing.assert_close(pat.load_pretrained(ckpt).state_dict(), model.state_dict())
 
-    from pat.cli import main
-    main(["export", str(tmp_path / "out" / "ckpt" / "checkpoint-1.pt"), str(tmp_path / "exported")])
+    # Resuming continues after the saved epoch.
+    cfg.resume, cfg.optim.epochs = str(ckpt), 3
+    resumed = train(cfg)
+    assert (tmp_path / "out" / "ckpt" / "epoch-2").exists() and not torch.equal(
+        resumed.state_dict()["mlp.fc.2.weight"], model.state_dict()["mlp.fc.2.weight"])
 
     ds = MergedNeuronDataset(SkeletonStore(swc), read_root_ids(csv), cfg.data, train=False)
     res = evaluate(model.eval(), ds, thresholds=(0.5, 0.8), min_cluster_size=1, limit=2, progress=False)

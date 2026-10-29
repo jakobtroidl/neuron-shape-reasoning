@@ -10,6 +10,7 @@ import torch
 from torch.utils.data import Dataset
 
 from ..io import load_neuron, node_array
+from ..preprocess import PAD_VALUE
 from . import augment
 from .config import DataConfig
 
@@ -90,18 +91,20 @@ class MergedNeuronDataset(Dataset):
     augmentations are random.
 
     Points have ``3 + F`` columns: xyz followed by the store's ``F`` features.
-    Augmentations (jitter, offsets, rotation, scaling) only touch xyz. Padding
-    points, and synthetic dust drawn for neurons without short twigs, have
-    zero features. Each item is a dict with
+    Augmentations (jitter, offsets, rotation, division by ``cfg.scale``) only
+    touch xyz; padding points have zero features. Dust is sampled from the
+    short twigs of other neurons, or from the whole skeleton of a neuron that
+    has none. Each item is a dict with
 
-    - ``pc`` ``(C, 3 + F)``: normalized cloud, padded to the fixed size ``C``
+    - ``pc`` ``(C, 3 + F)``: cloud divided by ``cfg.scale``, padded to the fixed size ``C``
     - ``mask`` ``(C,)``: ``False`` for padding
     - ``labels`` ``(C,)``: ``0`` padding, ``1..n`` neurons, ``n+1`` dust
+    - ``dust_label``: the dust label ``n+1``, or ``-1`` without dust
     - ``root_ids`` ``(max_neurons_merged,)``: merged neurons, zero padded
 
     and in training mode additionally
 
-    - ``qa``, ``qb`` ``(P, 3 + F)``: normalized query pairs
+    - ``qa``, ``qb`` ``(P, 3 + F)``: query pairs, divided by ``cfg.scale``
     - ``target`` ``(P,)``: ``1`` if both queries lie on the same neuron (not dust)
 
     Query points are drawn per pair from one of the ``cfg.query_mode`` sources:
@@ -147,12 +150,10 @@ class MergedNeuronDataset(Dataset):
         cfg = self.cfg
         out = []
         for rid in self._others(idx, cfg.n_dust_neurons):
-            dust = self.store.load(rid)[1]
-            k = cfg.n_dust_nodes_per_neuron
-            if dust.shape[0] > 0:
-                dust = dust[torch.randint(0, dust.shape[0], (k,)).sort().values]
-            else:
-                dust = torch.cat([torch.randn(k, 3) * cfg.scale, torch.zeros(k, width - 3)], dim=1)
+            nodes, dust = self.store.load(rid)
+            if dust.shape[0] == 0:  # no short twigs: sample from the whole skeleton
+                dust = nodes
+            dust = dust[torch.randint(0, dust.shape[0], (cfg.n_dust_nodes_per_neuron,)).sort().values]
             out.append(self._place(dust))
         return torch.cat(out) if out else torch.zeros(0, width)
 
@@ -177,7 +178,7 @@ class MergedNeuronDataset(Dataset):
 
         n = sum(p.shape[0] for p in points)
         pc = torch.zeros(self.cloud_size, width)
-        pc[:, :3] = -cfg.scale
+        pc[:, :3] = PAD_VALUE * cfg.scale  # becomes PAD_VALUE after scaling
         pc[:n] = torch.cat(points)
         point_labels = torch.zeros(self.cloud_size, dtype=torch.int64)
         point_labels[:n] = torch.cat(labels)

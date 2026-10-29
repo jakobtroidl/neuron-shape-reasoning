@@ -6,9 +6,11 @@ import numpy as np
 from sklearn.metrics import adjusted_rand_score as _ari
 from sklearn.metrics.cluster import contingency_matrix
 
+from .cluster import to_numpy
+
 
 def _labels(x) -> np.ndarray:
-    return np.asarray(x.cpu() if hasattr(x, "cpu") else x).astype(np.int64).ravel()
+    return to_numpy(x).astype(np.int64).ravel()
 
 
 def _entropy(counts: np.ndarray, n: int) -> float:

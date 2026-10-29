@@ -6,7 +6,7 @@ import torch
 
 from .. import metrics
 from ..cluster import cluster_affinity
-from ..inference import EncodedCloud
+from ..inference import DEFAULT_CHUNK_SIZE, EncodedCloud
 from ..model import PointAffinityTransformer
 
 
@@ -19,7 +19,7 @@ def evaluate(
     min_cluster_size: int = 30,
     symmetrize: bool = False,
     limit: int | None = None,
-    chunk_size: int = 16384,
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
     progress: bool = True,
 ) -> dict[float, dict[str, float]]:
     """Cluster every item of ``dataset`` and compare to its ground-truth labels.

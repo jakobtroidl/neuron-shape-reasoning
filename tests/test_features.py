@@ -91,7 +91,7 @@ def test_dataset_with_features(swc_dataset, tmp_path):
     assert (pc[~mask, 3:] == 0).all()                       # padding features are zero
     on_neuron = mask & (item["labels"] != item["dust_label"])
     assert set(pc[on_neuron, 4].tolist()) <= set(range(100, 106))  # features are not augmented
-    assert set(item["qa"][:, 4].tolist()) <= set(range(100, 106)) | {0.0}  # 0 = padding or synthetic dust
+    assert set(item["qa"][:, 4].tolist()) <= set(range(100, 106)) | {0.0}  # 0 = padding
 
 
 def test_train_with_features_from_3d_init(swc_dataset, tmp_path, tiny_model):

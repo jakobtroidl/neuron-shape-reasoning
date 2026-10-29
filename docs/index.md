@@ -6,7 +6,7 @@ reference implementation of
 (Troidl, Knittel, Li, Zhan, Pfister\*, Turaga\*).
 
 A Point Affinity Transformer (PAT) encodes a whole point cloud into a set of
-latent vectors. It then predicts, for any pair of 3D points, the probability
+latent vectors. It then predicts, for any pair of points, the probability
 that both belong to the same neuron. Clustering these affinities yields one
 label per point.
 
@@ -14,14 +14,14 @@ label per point.
 import pat
 
 model = pat.load_pretrained("my_model", device="cuda")  # trained with pat train
-seg = pat.segment(model, points_um)          # points_um: (N, 3) array in µm
+seg = pat.segment(model, points)             # points: (N, 3), normalized like the training data
 seg.labels                                   # one neuron id per point, -1 = noise
 ```
 
 Query points do not have to be part of the encoded cloud:
 
 ```python
-enc = pat.encode(model, points_um)            # encode once
+enc = pat.encode(model, points)               # encode once
 A = enc.affinity(queries, others)             # (Q, K) affinities between any points
 ```
 

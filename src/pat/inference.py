@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 import torch
 
-from .cluster import NOISE, cluster_affinity
+from .cluster import NOISE, cluster_affinity, num_clusters
 from .model import PointAffinityTransformer
 from .preprocess import as_points, subsample
 
@@ -106,8 +106,8 @@ def encode(
 
     Args:
         model: A PAT model, e.g. from [`load_pretrained`][pat.load_pretrained].
-        points: Coordinates ``(N, 3)``, normalized like the training data, followed
-            by the model's ``F = model.config.feature_dim`` feature columns if any.
+        points: Cloud ``(N, 3 + F)``: coordinates in the same frame as the training
+            data, then the model's ``F = model.config.feature_dim`` feature columns.
         max_points: Clouds larger than this are randomly subsampled before
             encoding. Defaults to ``model.config.num_points``.
         generator: Random generator for subsampling.
@@ -140,7 +140,7 @@ class Segmentation:
 
     @property
     def num_neurons(self) -> int:
-        return int(self.labels.max().item()) + 1 if (self.labels >= 0).any() else 0
+        return num_clusters(self.labels)
 
 
 @torch.no_grad()
@@ -154,9 +154,9 @@ def segment(
     method: str = "agglomerative",
     max_anchors: int = 4096,
     symmetrize: bool = True,
+    max_points: int | None = None,
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     generator: torch.Generator | None = None,
-    **encode_kwargs,
 ) -> Segmentation:
     """Split a point cloud into neurons.
 
@@ -178,11 +178,12 @@ def segment(
         method: Clustering method for the anchors.
         max_anchors: Maximum number of queries clustered directly.
         symmetrize: Symmetrize the anchor affinity matrix.
+        max_points: Subsample ``points`` to at most this many before encoding,
+            see [`encode`][pat.encode].
         chunk_size: Pairs per decoder pass; lower it if you run out of memory.
-        generator: Random generator for subsampling.
-        **encode_kwargs: Passed to [`encode`][pat.encode].
+        generator: Random generator for subsampling the cloud and the anchors.
     """
-    enc = encode(model, points, generator=generator, **encode_kwargs)
+    enc = encode(model, points, max_points=max_points, generator=generator)
     queries = as_points(points if queries is None else queries, device=enc.device, dim=model.in_dim)
     Q = queries.shape[0]
 
@@ -196,7 +197,7 @@ def segment(
     labels[anchors] = anchor_labels
     rest = torch.ones(Q, dtype=torch.bool, device=enc.device)
     rest[anchors] = False
-    n_clusters = int(anchor_labels.max().item()) + 1 if (anchor_labels >= 0).any() else 0
+    n_clusters = num_clusters(anchor_labels)
 
     if rest.any() and n_clusters > 0:
         valid = anchor_labels >= 0

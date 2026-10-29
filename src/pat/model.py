@@ -1,7 +1,7 @@
 """Point Affinity Transformer (PAT).
 
 The encoder compresses a point cloud into a fixed set of latent vectors. The
-decoder predicts, for a pair of 3D query points, the probability that both
+decoder predicts, for a pair of query points, the probability that both
 belong to the same neuron. Because the point embedding acts on each point
 independently, query points do not have to be part of the encoded cloud.
 
@@ -21,7 +21,7 @@ from torch import nn
 
 @dataclass
 class PATConfig:
-    """Architecture and preprocessing settings of a PAT model.
+    """Architecture of a PAT model, plus the cloud size it is used with.
 
     Attributes:
         dim: Width of point embeddings and latents.
@@ -30,8 +30,9 @@ class PATConfig:
         heads: Attention heads in the latent self-attention blocks.
         dim_head: Width of each attention head.
         drop_path_rate: Stochastic depth rate used during training.
-        num_points: Largest cloud size seen during training. Larger inputs
-            are subsampled to this size before encoding.
+        num_points: [`pat.encode`][pat.encode] and [`pat.segment`][pat.segment]
+            randomly subsample larger clouds to this size. ``pat train`` sets it
+            to the training cloud size; the default, 4288, is the paper's 1024 x 4 + 192.
         feature_dim: Number of extra per-point features after the xyz
             coordinates. Inputs then have ``3 + feature_dim`` columns.
     """
@@ -44,11 +45,6 @@ class PATConfig:
     drop_path_rate: float = 0.1
     num_points: int = 4288
     feature_dim: int = 0
-
-    @property
-    def in_dim(self) -> int:
-        """Number of input columns: 3 coordinates plus `feature_dim` features."""
-        return 3 + self.feature_dim
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -151,7 +147,6 @@ class PointEmbed(nn.Module):
         super().__init__()
         assert hidden_dim % 6 == 0
 
-        self.embedding_dim = hidden_dim
         self.feature_dim = feature_dim
         n = hidden_dim // 6
         e = torch.pow(2, torch.arange(n)).float() * math.pi
@@ -163,7 +158,7 @@ class PointEmbed(nn.Module):
         ])
         self.register_buffer("basis", e)  # 3 x hidden_dim/2
 
-        self.mlp = nn.Linear(self.embedding_dim + 3 + feature_dim, dim)
+        self.mlp = nn.Linear(hidden_dim + 3 + feature_dim, dim)
 
     def forward(self, x):
         # x: (..., 3 + feature_dim), coordinates first
@@ -200,8 +195,8 @@ class PointAffinityTransformer(nn.Module):
     pairs as needed. Coordinates are used as given; normalize them the same
     way for training and inference.
 
-    Points and queries have ``config.in_dim = 3 + config.feature_dim`` columns:
-    xyz followed by optional per-point features.
+    Points and queries have ``in_dim = 3 + config.feature_dim`` columns: xyz
+    followed by optional per-point features.
     """
 
     def __init__(self, config: PATConfig | None = None, **overrides):
@@ -236,13 +231,14 @@ class PointAffinityTransformer(nn.Module):
 
     @property
     def in_dim(self) -> int:
-        return self.config.in_dim
+        """Number of input columns: 3 coordinates plus ``config.feature_dim`` features."""
+        return 3 + self.config.feature_dim
 
     def encode(self, pc: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         """Encode a batch of point clouds into latents.
 
         Args:
-            pc: Normalized points, shape ``(B, N, in_dim)``.
+            pc: Points, shape ``(B, N, in_dim)``.
             mask: Optional boolean mask ``(B, N)``; ``False`` marks padding.
 
         Returns:

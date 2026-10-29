@@ -56,7 +56,7 @@ class TrainConfig:
     model: str = "ae_d1024_m512"
     depth: int = 24
     init: Optional[str] = None  # model directory to fine-tune from
-    resume: Optional[str] = None  # training checkpoint to resume
+    resume: Optional[str] = None  # checkpoint directory ({output_dir}/ckpt/epoch-N) to resume from
     output_dir: str = "./output"
     device: str = "cuda"
     amp: bool = False  # bf16 autocast

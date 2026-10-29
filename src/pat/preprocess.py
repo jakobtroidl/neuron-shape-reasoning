@@ -11,7 +11,7 @@ import numpy as np
 import torch
 
 PAD_VALUE = -1.0
-"""Coordinate value of padding points. Padding is masked, so the value does not matter."""
+"""Coordinate value of padding points. Padding is masked out of the encoder."""
 
 
 def as_points(points, device=None, dim: int | None = None) -> torch.Tensor:
